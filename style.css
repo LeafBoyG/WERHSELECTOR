@@ -105,3 +105,181 @@ h1 { font-size: 0.85rem; font-weight: 800; letter-spacing: 3px; text-transform: 
 .stat-val { font-size: 1.1rem; font-weight: 800; color: var(--faction-accent); }
 
 .hidden { display: none !important; }
+
+.faction-logo {
+    filter: drop-shadow(0 0 5px var(--faction-glow));
+    transition: transform 0.2s ease;
+    opacity: 0.9;
+}
+
+.menu-card:hover .faction-logo {
+    transform: scale(1.1);
+    opacity: 1;
+    filter: drop-shadow(0 0 8px var(--faction-accent));
+}
+
+/* Ensure icons don't break the layout on small screens */
+@media (max-width: 400px) {
+    .faction-logo {
+        width: 32px;
+        height: 32px;
+    }
+}
+
+/* --- TACTICAL WHITE ICONS --- */
+.faction-logo {
+    width: 40px;
+    height: 40px;
+    object-fit: contain;
+    /* This combination forces the SVG to be pure white */
+    filter: brightness(0) invert(1); 
+    opacity: 0.8;
+    transition: all 0.2s ease;
+}
+
+.menu-card:hover .faction-logo {
+    opacity: 1;
+    transform: scale(1.1);
+    /* Adds a glow effect using the faction's dynamic accent color */
+    filter: brightness(0) invert(1) drop-shadow(0 0 8px var(--faction-accent));
+}
+
+/* --- Restored Detail Styling --- */
+.weapon-card-tactical {
+    border-bottom: 1px solid var(--border-ui);
+    padding: 4px 0;
+}
+
+.weapon-keywords {
+    font-size: 0.6rem;
+    color: var(--faction-accent);
+    padding: 0 15px 8px 15px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+}
+
+.ability-card {
+    background: rgba(0, 0, 0, 0.4);
+    border: 1px solid var(--border-ui);
+    padding: 10px;
+    margin-bottom: 8px;
+}
+
+.ability-name {
+    color: var(--faction-accent);
+    font-size: 0.75rem;
+    font-weight: 800;
+    margin-bottom: 4px;
+    text-transform: uppercase;
+}
+
+.ability-text {
+    color: var(--text-secondary);
+    font-size: 0.7rem;
+    line-height: 1.4;
+}
+
+.kw-title {
+    font-size: 0.6rem;
+    color: var(--text-dim);
+    margin-bottom: 5px;
+    letter-spacing: 2px;
+}
+
+.kw-list {
+    color: var(--text-high);
+    font-size: 0.75rem;
+    font-weight: 700;
+}
+
+/* --- Centered White Icons --- */
+.faction-logo {
+    filter: brightness(0) invert(1);
+    opacity: 0.9;
+}
+
+.unit-header .faction-logo {
+    width: 22px;
+    height: 22px;
+    filter: brightness(0) invert(1) drop-shadow(0 0 4px var(--faction-accent));
+}
+
+/* Vertical list for Unit selection */
+.list-menu.vertical {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    width: 100%;
+}
+
+.list-menu.vertical .menu-card {
+    border-left: 4px solid var(--faction-accent);
+    padding: 15px 20px;
+    text-align: left;
+    align-items: flex-start;
+}
+
+/* Ensure the detailed card header shows the white logo */
+.unit-header .faction-logo {
+    width: 24px;
+    height: 24px;
+    filter: brightness(0) invert(1); /* Forces white icon */
+    margin-right: 10px;
+}
+
+/* Ensure the Detailed View is scrollable within the square card */
+.tab-content {
+    flex: 1;
+    overflow-y: auto;
+    padding: 10px;
+    scrollbar-width: thin;
+    scrollbar-color: var(--faction-accent) transparent;
+}
+
+.weapon-row {
+    display: grid;
+    grid-template-columns: 2.2fr repeat(5, 1fr);
+    font-size: 0.65rem;
+    text-align: center;
+    padding: 8px 0;
+}
+
+.weapon-row.header {
+    color: var(--faction-accent);
+    font-weight: 800;
+    border-bottom: 1px solid var(--border-ui);
+}
+/* Ensure the Detailed View is scrollable within the square card profile */
+.tab-content {
+    flex: 1;
+    overflow-y: auto;
+    padding: 10px;
+    scrollbar-width: thin;
+    scrollbar-color: var(--faction-accent) transparent;
+}
+
+/* Tactical Weapon Grid for the detailed view */
+.weapon-row {
+    display: grid;
+    grid-template-columns: 2.2fr repeat(5, 1fr);
+    font-size: 0.65rem;
+    text-align: center;
+    padding: 8px 0;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+}
+
+.weapon-row.header {
+    color: var(--faction-accent);
+    font-weight: 800;
+    border-bottom: 1px solid var(--faction-accent);
+    background: rgba(0, 0, 0, 0.3);
+}
+
+.weapon-keywords {
+    font-size: 0.6rem;
+    color: var(--faction-accent);
+    padding: 4px 10px;
+    font-style: italic;
+    text-align: left;
+}
