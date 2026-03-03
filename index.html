@@ -3,24 +3,26 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Wehrselector</title>
+    <title>Wehrselector | Command Interface</title>
     <link rel="stylesheet" href="style.css">
 </head>
 <body>
-    <header id="main-header">
-        <button id="back-btn" class="hidden">‹</button>
-        <h1>Wehrselector</h1>
-        <button id="roster-toggle">Roster</button>
-    </header>
+    <div id="app-container">
+        <header id="main-header">
+            <button id="back-btn" class="hidden">‹</button>
+            <h1>Wehrselector</h1>
+            <button id="roster-toggle">Roster</button>
+        </header>
 
-    <div id="breadcrumbs" class="hidden"></div>
+        <div id="breadcrumbs" class="hidden"></div>
 
-    <div id="search-section" class="search-container">
-        <input type="text" id="search-bar" placeholder="Search units or weapons...">
+        <div id="search-section" class="search-container">
+            <input type="text" id="search-bar" placeholder="SEARCH SYSTEM_NODES...">
+        </div>
+
+        <main id="app-content">
+            </main>
     </div>
-
-    <main id="app-content">
-        </main>
 
     <script src="app.js"></script>
 </body>
