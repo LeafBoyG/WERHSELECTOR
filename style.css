@@ -282,3 +282,470 @@ h1 { font-size: 0.85rem; font-weight: 800; letter-spacing: 3px; text-transform: 
     color: var(--accent-hazard);
     font-weight: 800;
 }
+
+/* --- TACTICAL STAT HIGHLIGHTS --- */
+.stat-val {
+    font-size: 1.15rem;
+    font-weight: 900;
+    color: var(--text-high);
+    transition: all 0.3s ease;
+}
+
+/* Specific stat glows */
+.stat-val.high-performance {
+    color: var(--faction-accent);
+    text-shadow: 0 0 10px var(--faction-glow);
+}
+
+.stat-val.save-highlight {
+    color: #ef4444; /* Standard alert red for saves */
+    text-shadow: 0 0 8px rgba(239, 68, 68, 0.3);
+}
+
+/* Weapon Stat Accents */
+.weapon-ap {
+    color: #ffb400; /* Hazard Amber */
+    font-weight: 800;
+}
+
+.weapon-d {
+    color: #00e5ff; /* Pulse Blue for Damage */
+    font-weight: 800;
+}
+
+/* Tag Highlights */
+.weapon-keywords {
+    font-size: 0.55rem;
+    color: var(--faction-accent);
+    background: rgba(255, 255, 255, 0.03);
+    padding: 2px 8px;
+    border-radius: 2px;
+    display: inline-block;
+    margin: 2px 10px;
+    border: 1px solid rgba(255, 255, 255, 0.05);
+}
+
+/* --- TACTICAL BUTTONS & INTERACTIVE ELEMENTS --- */
+.action-btn {
+    background: transparent;
+    border: 1px solid var(--faction-accent);
+    color: var(--faction-accent);
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 0.65rem;
+    font-weight: 800;
+    padding: 6px 12px;
+    cursor: pointer;
+    text-transform: uppercase;
+    transition: all 0.2s ease;
+}
+
+.action-btn:hover {
+    background: var(--faction-accent);
+    color: #000;
+}
+
+/* --- WOUND TRACKER STYLING --- */
+.wound-tracker {
+    display: grid;
+    grid-template-columns: 1fr 2.5fr 1fr;
+    align-items: center;
+    background: #000;
+    padding: 8px;
+    border-top: 1px solid var(--border-ui);
+}
+
+.wound-btn {
+    background: var(--bg-elevated);
+    border: 1px solid var(--border-ui);
+    color: var(--faction-accent);
+    height: 40px;
+    font-size: 1.4rem;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: background 0.1s;
+}
+
+.wound-btn:active {
+    background: var(--faction-accent);
+    color: #000;
+}
+
+.wound-display {
+    text-align: center;
+    font-family: 'JetBrains Mono', monospace;
+}
+
+/* --- TABS --- */
+.tab-bar {
+    display: flex;
+    background: #000;
+    border-bottom: 1px solid var(--border-ui);
+}
+
+.tab-btn {
+    flex: 1;
+    background: transparent;
+    border: none;
+    padding: 12px 0;
+    color: var(--text-dim);
+    font-family: inherit;
+    font-size: 0.7rem;
+    font-weight: 800;
+    text-transform: uppercase;
+    cursor: pointer;
+    transition: color 0.2s;
+}
+
+.tab-btn.active {
+    color: var(--faction-accent);
+    border-bottom: 2px solid var(--faction-accent);
+}
+
+/* --- WEAPON HIGHLIGHTS --- */
+.weapon-ap {
+    color: var(--accent-safety); /* Amber Highlight */
+    font-weight: 800;
+}
+
+.weapon-d {
+    color: #00e5ff; /* Cyan Pulse for Damage */
+    font-weight: 800;
+}
+
+/* --- TACTICAL SYSTEM SCANNER (SEARCH) --- */
+.search-container {
+    padding: 15px 20px;
+    background: var(--bg-deep);
+    position: relative;
+    display: flex;
+    align-items: center;
+}
+
+/* Tactical Prefix (The '>' prompt) */
+.search-container::before {
+    content: '>';
+    position: absolute;
+    left: 32px;
+    color: var(--faction-accent);
+    font-family: 'JetBrains Mono', monospace;
+    font-weight: 800;
+    font-size: 0.9rem;
+    pointer-events: none;
+    animation: pulse 1.5s infinite;
+}
+
+#search-bar {
+    width: 100%;
+    background: #0a0c0e;
+    border: 1px solid rgba(255, 180, 0, 0.1);
+    padding: 12px 12px 12px 35px; /* Extra left padding for the prompt */
+    color: var(--text-high);
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 0.75rem;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    border-radius: 0; /* Square edges for military look */
+    outline: none;
+    transition: all 0.3s ease;
+}
+
+/* Active Scanner Effect */
+#search-bar:focus {
+    border-color: var(--faction-accent);
+    background: #11151a;
+    box-shadow: inset 0 0 10px var(--faction-glow), 0 0 15px var(--faction-glow);
+}
+
+#search-bar::placeholder {
+    color: #334155;
+    opacity: 1;
+}
+
+/* Prompt Pulse Animation */
+@keyframes pulse {
+    0% { opacity: 1; }
+    50% { opacity: 0.3; }
+    100% { opacity: 1; }
+}
+
+#search-suggestions {
+    position: absolute;
+    top: 100%;
+    left: 20px;
+    right: 20px;
+    background: #0d1013;
+    border: 1px solid var(--faction-accent);
+    border-top: none;
+    z-index: 2000;
+    box-shadow: 0 10px 20px rgba(0,0,0,0.8);
+}
+
+.suggestion-item {
+    padding: 10px 15px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    cursor: pointer;
+    font-size: 0.7rem;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+}
+
+.suggestion-item:hover {
+    background: var(--bg-elevated);
+    color: var(--faction-accent);
+}
+
+/* Large Super-Faction Logo Styling */
+.sf-large-logo {
+    width: 60px;
+    height: 60px;
+    margin-bottom: 5px;
+    filter: brightness(0) invert(1) drop-shadow(0 0 5px var(--faction-glow));
+    transition: all 0.3s ease;
+}
+
+.menu-card:hover .sf-large-logo {
+    transform: scale(1.15);
+    filter: brightness(0) invert(1) drop-shadow(0 0 12px var(--faction-accent));
+}
+
+.sf-icon-container {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    height: 70px;
+}
+/* --- FRAME & SYSTEM SCANLINES --- */
+#app-container {
+    position: relative;
+    overflow: hidden;
+    /* Subtle scanline effect overlay */
+    background: linear-gradient(rgba(18, 16, 16, 0) 50%, rgba(0, 0, 0, 0.1) 50%), 
+                linear-gradient(90deg, rgba(255, 0, 0, 0.03), rgba(0, 255, 0, 0.01), rgba(0, 0, 255, 0.03));
+    background-size: 100% 2px, 3px 100%;
+}
+
+/* --- BACK BUTTON OVERHAUL --- */
+#back-btn {
+    background: var(--bg-elevated);
+    border: 1px solid var(--faction-accent);
+    color: var(--faction-accent);
+    padding: 6px 14px;
+    font-family: inherit;
+    font-weight: 800;
+    font-size: 0.65rem;
+    text-transform: uppercase;
+    cursor: pointer;
+    clip-path: polygon(10% 0, 100% 0, 100% 100%, 0 100%, 0 35%); /* Angled military edge */
+    transition: all 0.2s ease;
+}
+
+#back-btn:hover {
+    background: var(--faction-accent);
+    color: #000;
+    box-shadow: 0 0 10px var(--faction-glow);
+}
+
+/* --- BREADCRUMB REFINEMENT --- */
+#breadcrumbs {
+    border-bottom: 1px solid var(--border-ui);
+    padding: 12px 20px;
+}
+
+.breadcrumb-item {
+    opacity: 0.6;
+    transition: opacity 0.2s;
+    font-size: 0.6rem;
+    letter-spacing: 1px;
+}
+
+.breadcrumb-item:hover {
+    opacity: 1;
+    text-shadow: 0 0 5px var(--faction-accent);
+}
+
+.breadcrumb-item.active {
+    opacity: 1;
+    color: var(--text-high);
+}
+
+/* --- SCROLLBAR TACTICAL STYLE --- */
+::-webkit-scrollbar {
+    width: 4px;
+}
+
+::-webkit-scrollbar-track {
+    background: var(--bg-deep);
+}
+
+::-webkit-scrollbar-thumb {
+    background: var(--faction-accent);
+    border-radius: 2px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+    background: var(--faction-accent);
+}
+
+/* --- TACTICAL STAT HIGHLIGHTS --- */
+.stat-val.high-performance {
+    color: var(--faction-accent);
+    text-shadow: 0 0 10px var(--faction-glow);
+}
+
+.stat-val.save-highlight {
+    color: #ef4444; /* Alert Red for Survival Stats */
+    text-shadow: 0 0 8px rgba(239, 68, 68, 0.3);
+}
+
+/* Weapon Stat Accents */
+.weapon-ap {
+    color: var(--accent-hazard) !important; /* Hazard Amber */
+    font-weight: 800;
+}
+
+.weapon-d {
+    color: #00e5ff !important; /* Pulse Cyan for Damage */
+    font-weight: 800;
+}
+
+/* Tag Highlights */
+.weapon-keywords {
+    font-size: 0.55rem;
+    color: var(--faction-accent);
+    background: rgba(255, 255, 255, 0.03);
+    padding: 2px 8px;
+    border-radius: 2px;
+    display: inline-block;
+    margin: 2px 10px;
+    border: 1px solid rgba(255, 180, 0, 0.1);
+}
+
+/* --- ROSTER SPECIFIC REFINEMENTS --- */
+.roster-wound-ctrl button {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 1.2rem;
+    padding: 0 5px;
+}
+
+.roster-wound-ctrl button:hover {
+    color: var(--faction-accent);
+}
+
+/* Add a badge to the Roster button if units are engaged */
+#roster-toggle.active-roster {
+    background: var(--faction-accent);
+    color: #000;
+    box-shadow: 0 0 10px var(--faction-glow);
+}
+
+/* --- ROSTER TAB STYLING --- */
+.empty-state-alert {
+    padding: 60px 20px;
+    text-align: center;
+    color: var(--text-dim);
+    font-size: 0.7rem;
+    border: 1px dashed var(--border-ui);
+    margin: 20px;
+}
+
+.roster-item-layout {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.faction-tag {
+    font-size: 0.5rem;
+    color: var(--faction-accent);
+    text-transform: uppercase;
+    display: block;
+    margin-bottom: 2px;
+}
+
+.wound-counter-small {
+    display: flex;
+    align-items: center;
+    background: #000;
+    border: 1px solid var(--border-ui);
+    padding: 2px;
+    gap: 10px;
+}
+
+.wound-counter-small button {
+    background: transparent;
+    border: none;
+    color: var(--text-high);
+    font-family: inherit;
+    cursor: pointer;
+    padding: 5px 8px;
+}
+
+.hp-val {
+    color: var(--accent-hazard);
+    font-weight: 800;
+    min-width: 25px;
+    text-align: center;
+}
+
+.disengage-btn {
+    background: transparent;
+    border: none;
+    color: var(--text-dim);
+    font-size: 1rem;
+    cursor: pointer;
+    margin-left: 15px;
+    transition: color 0.2s;
+}
+
+.disengage-btn:hover {
+    color: #ef4444;
+}
+
+.danger-btn {
+    border-color: #ef4444 !important;
+    color: #ef4444 !important;
+}
+
+.roster-footer {
+    padding: 20px;
+}
+
+/* --- UNIT NAVIGATION ARROWS --- */
+.nav-arrow {
+    background: transparent;
+    border: none;
+    color: var(--faction-accent);
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 0.6rem;
+    font-weight: 800;
+    cursor: pointer;
+    padding: 10px;
+    transition: all 0.2s ease;
+}
+
+.nav-arrow:hover:not(:disabled) {
+    text-shadow: 0 0 8px var(--faction-accent);
+    letter-spacing: 1px;
+}
+
+.nav-arrow:disabled {
+    cursor: not-allowed;
+}
+
+.history-bar {
+    transition: all 0.2s ease;
+    border-top: 2px solid transparent;
+}
+
+.history-bar:hover {
+    background: rgba(255, 180, 0, 0.15) !important;
+    border-top: 2px solid var(--accent-hazard);
+}
+
+.history-bar span {
+    letter-spacing: 2px;
+    font-weight: 800;
+}

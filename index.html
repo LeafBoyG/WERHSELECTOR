@@ -11,14 +11,15 @@
         <header id="main-header">
             <button id="back-btn" class="hidden">‹</button>
             <h1>Wehrselector</h1>
-            <button id="roster-toggle">Roster</button>
+           <button id="roster-toggle" onclick="renderRoster()">ROSTER</button>
         </header>
 
         <div id="breadcrumbs" class="hidden"></div>
 
-        <div id="search-section" class="search-container">
-            <input type="text" id="search-bar" placeholder="SEARCH SYSTEM_NODES...">
-        </div>
+<div id="search-section" class="search-container">
+    <input type="text" id="search-bar" placeholder="SEARCH SYSTEM_NODES..." autocomplete="off">
+    <div id="search-suggestions" class="hidden"></div>
+</div>
 
         <main id="app-content">
             </main>
