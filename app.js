@@ -1,22 +1,14 @@
-// --- ARK RAIDER COMMAND SCRIPT ---
+// --- 1. STATE & DATA MANAGEMENT ---
 let db = [];
 let viewHistory = ['superfactions'];
 let currentSelection = { superFaction: null, faction: null, subfaction: null };
 let roster = [];
 let unitWounds = {};
 
-// --- DATA MAPPING ---
-const factionColors = {
-    "Adepta Sororitas": "#f2f2f2", "Adeptus Custodes": "#e5c100", "Adeptus Mechanicus": "#ff4422",
-    "Astra Militarum": "#4e5d4a", "Chaos Daemons": "#ff00ff", "Chaos Space Marines": "#ff8800",
-    "Death Guard": "#889966", "Necrons": "#00ff00", "Orks": "#228822", 
-    "Space Marines": "#0077ff", "T’au Empire": "#ffcc33", "Tyranids": "#aa00ff", "World Eaters": "#ff0000"
-};
-
 const superFactions = {
-    "Imperium": ["Adepta Sororitas", "Adeptus Custodes", "Adeptus Mechanicus", "Astra Militarum", "Space Marines"],
-    "Chaos": ["Chaos Daemons", "Chaos Space Marines", "Death Guard", "World Eaters"],
-    "Xenos": ["Aeldari", "Necrons", "Orks", "T’au Empire", "Tyranids"]
+    "Imperium": ["Adepta Sororitas", "Adeptus Custodes", "Adeptus Mechanicus", "Adeptus Titanicus", "Astra Militarum", "Grey Knights", "Imperial Agents", "Imperial Knights", "Space Marines"],
+    "Chaos": ["Chaos Daemons", "Chaos Knights", "Chaos Space Marines", "Death Guard", "Emperor’s Children", "Thousand Sons", "World Eaters"],
+    "Xenos": ["Aeldari", "Drukhari", "Genestealer Cults", "Leagues of Votann", "Necrons", "Orks", "T’au Empire", "Tyranids"]
 };
 
 const factionLogos = {
@@ -30,12 +22,28 @@ const factionLogos = {
     "Thousand Sons": "TS.svg", "Tyranids": "TYR.svg", "World Eaters": "WE.svg"
 };
 
-// --- DOM ELEMENTS ---
-const contentDiv = document.getElementById('app-content');
-const breadcrumbsDiv = document.getElementById('breadcrumbs');
-const backBtn = document.getElementById('back-btn');
+const factionColors = {
+    "Adepta Sororitas": "#f2f2f2", "Adeptus Custodes": "#e5c100", "Adeptus Mechanicus": "#ff4422",
+    "Astra Militarum": "#4e5d4a", "Chaos Daemons": "#ff00ff", "Chaos Space Marines": "#ff8800",
+    "Death Guard": "#889966", "Necrons": "#00ff00", "Orks": "#228822", 
+    "Space Marines": "#0077ff", "T’au Empire": "#ffcc33", "Tyranids": "#aa00ff", "World Eaters": "#ff0000"
+};
 
-// --- THEME & UI HELPERS ---
+// --- 2. DOM ELEMENTS ---
+const contentDiv = document.getElementById('app-content');
+const backBtn = document.getElementById('back-btn');
+const breadcrumbsDiv = document.getElementById('breadcrumbs');
+const searchBar = document.getElementById('search-bar');
+
+// --- 3. INITIALIZATION ---
+fetch('wehrselector_data.json')
+    .then(res => res.json())
+    .then(data => {
+        db = data;
+        renderHome();
+    });
+
+// --- 4. THEME & UI HELPERS ---
 const setTheme = (color) => {
     document.documentElement.style.setProperty('--faction-accent', color || 'var(--accent-safety)');
     document.documentElement.style.setProperty('--faction-glow', (color || '#ffb400') + '26');
@@ -48,53 +56,31 @@ const resetTheme = () => {
 
 const updateUI = (view, unitId = null) => {
     if (!breadcrumbsDiv) return;
-    renderBreadcrumbs(view, unitId);
     
-    // Toggle visibility of Back Button
-    if (backBtn) {
-        backBtn.classList.toggle('hidden', view === 'superfactions');
-    }
-};
-
-const renderBreadcrumbs = (view, unitId) => {
-    breadcrumbsDiv.innerHTML = '';
-    breadcrumbsDiv.classList.toggle('hidden', view === 'superfactions');
-    
-    let crumbs = [{ name: 'CMD', action: () => goHome() }];
-    
-    if (view === 'factions') crumbs.push({ name: currentSelection.superFaction });
+    let crumbs = [`<span class="crumb" onclick="goHome()">CMD</span>`];
+    if (view === 'factions') crumbs.push(`<span class="crumb active">${currentSelection.superFaction}</span>`);
     else if (view === 'subfactions') {
-        crumbs.push({ name: currentSelection.superFaction, action: () => renderFactions(currentSelection.superFaction) });
-        crumbs.push({ name: currentSelection.faction });
+        crumbs.push(`<span class="crumb" onclick="selectSuperFaction('${currentSelection.superFaction}')">${currentSelection.superFaction}</span>`);
+        crumbs.push(`<span class="crumb active">${currentSelection.faction}</span>`);
     } else if (view === 'units') {
-        crumbs.push({ name: currentSelection.faction, action: () => renderSubfactions(currentSelection.faction) });
-        crumbs.push({ name: currentSelection.subfaction });
+        crumbs.push(`<span class="crumb" onclick="selectFaction('${currentSelection.faction}')">${currentSelection.faction}</span>`);
+        crumbs.push(`<span class="crumb active">${currentSelection.subfaction}</span>`);
     } else if (view === 'card') {
         const u = db.find(unit => unit.id === unitId);
-        crumbs.push({ name: currentSelection.subfaction, action: () => renderUnitList(currentSelection.faction, currentSelection.subfaction) });
-        crumbs.push({ name: u ? u.name : 'DATA' });
+        crumbs.push(`<span class="crumb" onclick="renderUnitList('${currentSelection.faction}', '${currentSelection.subfaction}')">${currentSelection.subfaction}</span>`);
+        crumbs.push(`<span class="crumb active">${u ? u.name : 'DATA'}</span>`);
     }
 
-    crumbs.forEach((p, i) => {
-        const span = document.createElement('span');
-        span.textContent = p.name ? p.name.toUpperCase() : '';
-        span.className = "breadcrumb-item" + (i === crumbs.length - 1 ? " active" : "");
-        if (p.action && i !== crumbs.length - 1) span.onclick = p.action;
-        breadcrumbsDiv.appendChild(span);
-        if (i < crumbs.length - 1) {
-            const sep = document.createElement('span');
-            sep.textContent = ' // ';
-            sep.style.color = 'var(--text-dim)';
-            breadcrumbsDiv.appendChild(sep);
-        }
-    });
+    breadcrumbsDiv.innerHTML = crumbs.join(' // ');
+    breadcrumbsDiv.classList.toggle('hidden', view === 'superfactions');
+    backBtn.classList.toggle('hidden', view === 'superfactions');
 };
 
-// --- RENDER FUNCTIONS ---
+// --- 5. RENDER FUNCTIONS ---
 const renderHome = () => {
     currentSelection = { superFaction: null, faction: null, subfaction: null };
     viewHistory = ['superfactions'];
-    resetTheme();
+    setTheme();
     updateUI('superfactions');
     contentDiv.innerHTML = Object.keys(superFactions).map(sf => `
         <div class="menu-card" onclick="selectSuperFaction('${sf}')">
@@ -105,6 +91,7 @@ const renderHome = () => {
 
 const renderFactions = (sf) => {
     currentSelection.superFaction = sf;
+    currentSelection.faction = null;
     updateUI('factions');
     resetTheme();
     contentDiv.innerHTML = superFactions[sf].map(f => {
@@ -178,20 +165,22 @@ const renderCard = (unitId) => {
             </div>
 
             <div id="tab-weapons" class="tab-content">
-                <div class="weapon-row header" style="display:grid; grid-template-columns:2.2fr repeat(5,1fr); background:#0a0c0e; color:var(--faction-accent); padding:10px; font-size:0.6rem; font-weight:800; text-align:center;">
-                    <span>WEAPON</span><span>R</span><span>A</span><span>BS</span><span>S</span><span>D</span>
+                <div class="weapon-row header">
+                    <span>WEAPON</span><span>R</span><span>A</span><span>BS</span><span>S</span><span>AP</span><span>D</span>
                 </div>
                 ${unit.weapons.map(w => `
-                    <div style="border-bottom: 1px solid rgba(255,255,255,0.05); padding: 8px 0;">
-                        <div style="display:grid; grid-template-columns:2.2fr repeat(5,1fr); font-size:0.65rem; text-align:center; padding: 4px 0;">
+                    <div class="weapon-card-tactical" style="border-bottom: 1px solid var(--border-ui); padding: 8px 0;">
+                        <div class="weapon-row">
                             <span style="font-weight:800; color:var(--text-high); text-align:left; padding-left:10px;">${w.name}</span>
-                            <span>${w.range}</span><span>${w.a}</span><span>${w.ws_bs}+</span><span>${w.s}</span><span>${w.d}</span>
+                            <span>${w.range}</span><span>${w.a}</span><span>${w.ws_bs}+</span><span>${w.s}</span>
+                            <span style="color:var(--accent-hazard); font-weight:800;">${w.ap}</span>
+                            <span>${w.d}</span>
                         </div>
-                        ${w.keywords ? `<div style="font-size:0.55rem; color:var(--faction-accent); padding-left:10px; font-style:italic;">// ${Array.isArray(w.keywords) ? w.keywords.join(' // ') : w.keywords}</div>` : ''}
+                        ${w.keywords && w.keywords.length ? `<div style="font-size:0.55rem; color:var(--faction-accent); padding-left:10px; font-style:italic;">// ${Array.isArray(w.keywords) ? w.keywords.join(' // ') : w.keywords}</div>` : ''}
                     </div>`).join('')}
             </div>
 
-            <div id="tab-abilities" class="tab-content hidden" style="padding:15px; font-size:0.75rem;">
+            <div id="tab-abilities" class="tab-content hidden" style="padding:15px;">
                 <div style="font-size:0.6rem; color:var(--text-dim); margin-bottom:10px; letter-spacing:1px;">KEYWORDS: ${Array.isArray(unit.keywords) ? unit.keywords.join(' // ') : unit.keywords}</div>
                 ${unit.abilities ? unit.abilities.map(a => `
                     <div style="margin-bottom:10px; padding:8px; background:rgba(0,0,0,0.3); border:1px solid var(--border-ui);">
@@ -211,7 +200,7 @@ const renderCard = (unitId) => {
         </div>`;
 };
 
-// --- INTERACTION HANDLERS ---
+// --- 6. INTERACTION HANDLERS ---
 window.goHome = () => renderHome();
 window.selectSuperFaction = (sf) => { viewHistory.push('factions'); renderFactions(sf); };
 window.selectFaction = (f) => { viewHistory.push('subfactions'); renderSubfactions(f); };
@@ -248,11 +237,3 @@ if (backBtn) {
         else if (prev === 'units') renderUnitList(currentSelection.faction, currentSelection.subfaction);
     });
 }
-
-// --- INIT ---
-fetch('wehrselector_data.json')
-    .then(res => res.json())
-    .then(data => {
-        db = data;
-        renderHome();
-    });

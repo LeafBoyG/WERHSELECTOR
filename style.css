@@ -259,28 +259,26 @@ h1 { font-size: 0.85rem; font-weight: 800; letter-spacing: 3px; text-transform: 
     scrollbar-color: var(--faction-accent) transparent;
 }
 
-/* Tactical Weapon Grid for the detailed view */
+
 .weapon-row {
     display: grid;
-    grid-template-columns: 2.2fr repeat(5, 1fr);
-    font-size: 0.65rem;
-    text-align: center;
-    padding: 8px 0;
-    border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+    grid-template-columns: 2fr repeat(6, 1fr); 
+    padding: 10px 15px;
+    font-size: 0.7rem;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.03);
+    align-items: center;
 }
 
 .weapon-row.header {
+    background: #0a0c0e;
     color: var(--faction-accent);
     font-weight: 800;
-    border-bottom: 1px solid var(--faction-accent);
-    background: rgba(0, 0, 0, 0.3);
-}
-
-.weapon-keywords {
+    text-transform: uppercase;
     font-size: 0.6rem;
-    color: var(--faction-accent);
-    padding: 4px 10px;
-    font-style: italic;
-    text-align: left;
 }
 
+/* Specific styling for AP to make it stand out */
+.weapon-ap {
+    color: var(--accent-hazard);
+    font-weight: 800;
+}
