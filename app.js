@@ -38,36 +38,83 @@ const searchBar = document.getElementById('search-bar');
 const suggestionsDiv = document.getElementById('search-suggestions');
 const rosterBtn = document.getElementById('roster-toggle');
 
-// --- 2. PERSISTENCE ENGINE ---
-const saveToDisk = () => {
+// --- 2. TACTICAL TOAST SYSTEM & GLITCH EFFECT ---
+const showToast = (message, type = 'info') => {
+    let container = document.getElementById('toast-container');
+    if (!container) {
+        container = document.createElement('div');
+        container.id = 'toast-container';
+        document.body.appendChild(container);
+    }
+
+    const toast = document.createElement('div');
+    toast.className = `toast-alert ${type}`;
+    const icon = type === 'hazard' ? '[!]' : '>>';
+    
+    // Initial content
+    toast.innerHTML = `<span class="toast-icon">${icon}</span> <span class="toast-msg">${message}</span>`;
+    container.appendChild(toast);
+
+    // Telemetry Glitch Effect: Randomize characters for 150ms
+    const msgSpan = toast.querySelector('.toast-msg');
+    const originalText = message;
+    const chars = "!<>-_\\/[]{}—=+*^?#________";
+    let iterations = 0;
+    
+    const glitchInterval = setInterval(() => {
+        msgSpan.innerText = originalText.split("")
+            .map((char, index) => {
+                if (index < iterations) return originalText[index];
+                return chars[Math.floor(Math.random() * chars.length)];
+            }).join("");
+        
+        if (iterations >= originalText.length) clearInterval(glitchInterval);
+        iterations += 1 / 2;
+    }, 30);
+
+    setTimeout(() => {
+        toast.classList.add('fade-out');
+        setTimeout(() => toast.remove(), 500);
+    }, 3000);
+};
+
+// --- 3. PERSISTENCE ENGINE ---
+const saveToDisk = (silent = false) => {
     localStorage.setItem('arkRaider_session', JSON.stringify({
         roster: roster,
         unitWounds: unitWounds,
         teams: teams
     }));
+    if (!silent) showToast("DATA_SYNC_SUCCESSFUL", "info");
 };
 
 const loadFromDisk = () => {
     const saved = localStorage.getItem('arkRaider_session');
     if (saved) {
-        const data = JSON.parse(saved);
-        roster = data.roster || [];
-        unitWounds = data.unitWounds || {};
-        teams = data.teams || { "ALPHA": [], "BRAVO": [], "RESERVES": [] };
-        updateRosterBadge();
+        try {
+            const data = JSON.parse(saved);
+            roster = data.roster || [];
+            unitWounds = data.unitWounds || {};
+            teams = (data.teams && Object.keys(data.teams).length > 0) ? data.teams : { "ALPHA": [], "BRAVO": [], "RESERVES": [] };
+            updateRosterBadge();
+        } catch (e) {
+            showToast("CORRUPT_BUFFER_REPAIRED", "hazard");
+            saveToDisk(true);
+        }
     }
 };
 
-// --- 3. INITIALIZATION ---
+// --- 4. INITIALIZATION ---
 fetch('wehrselector_data.json')
     .then(res => res.json())
     .then(data => {
         db = data;
         loadFromDisk();
         renderHome();
+        showToast("SYSTEM_READY // UPLINK_STABLE", "info");
     });
 
-// --- 4. THEME & UI HELPERS ---
+// --- 5. THEME & UI HELPERS ---
 const setTheme = (color) => {
     document.documentElement.style.setProperty('--faction-accent', color || 'var(--accent-amber)');
     document.documentElement.style.setProperty('--faction-glow', (color || '#ffb400') + '26');
@@ -101,7 +148,7 @@ const updateUI = (view, unitId = null) => {
     if (backBtn) backBtn.classList.toggle('hidden', view === 'superfactions');
 };
 
-// --- 5. RENDER FUNCTIONS ---
+// --- 6. RENDER FUNCTIONS ---
 const renderHome = () => {
     currentSelection = { superFaction: null, faction: null, subfaction: null, unitId: null };
     viewHistory = ['superfactions'];
@@ -230,7 +277,7 @@ const renderCard = (unitId) => {
         </div>`;
 };
 
-// --- 6. TEAM & ROSTER SYSTEM ---
+// --- 7. TEAM & ROSTER SYSTEM ---
 window.showRoster = () => {
     viewHistory.push('roster');
     renderRoster();
@@ -240,6 +287,8 @@ const renderRoster = () => {
     updateUI('roster');
     resetTheme();
     
+    if (!teams["ALPHA"]) teams["ALPHA"] = [];
+
     contentDiv.innerHTML = `
         <div class="team-controls" style="margin-bottom:20px; display:flex; justify-content:space-between; align-items:center; border-bottom:1px solid var(--border-ui); padding-bottom:10px;">
             <h1 style="color:var(--accent-hazard); font-size:1rem;">BATTLEGROUP_INTEL</h1>
@@ -248,12 +297,14 @@ const renderRoster = () => {
         ${Object.keys(teams).map(teamName => {
             const teamUnits = teams[teamName].map(id => db.find(u => u.id === id)).filter(u => u);
             if (teamUnits.length === 0 && teamName !== "ALPHA") return '';
+            
             return `
                 <div class="team-block" style="margin-bottom:20px; border: 1px solid var(--border-ui);">
                     <div style="background:var(--bg-elevated); padding:8px 15px; display:flex; justify-content:space-between; border-bottom:1px solid var(--faction-accent);">
                         <span style="font-weight:800; color:var(--faction-accent); font-size:0.7rem;">SQUAD // ${teamName}</span>
                     </div>
                     <div style="padding:10px;">
+                        ${teamUnits.length === 0 ? '<p style="font-size:0.6rem; color:var(--text-dim); text-align:center;">EMPTY_SQUAD</p>' : ''}
                         ${teamUnits.map(u => `
                             <div class="roster-item-layout" style="margin-bottom:12px; display:flex; justify-content:space-between; align-items:center;">
                                 <div onclick="selectUnit('${u.id}')" style="cursor:pointer;">
@@ -266,7 +317,7 @@ const renderRoster = () => {
                                         <span id="roster-wounds-${u.id}" style="color:var(--accent-hazard); font-weight:800; min-width:25px; text-align:center;">${unitWounds[u.id] || u.w}</span>
                                         <button onclick="updateWounds('${u.id}', 1)" style="background:none; border:none; color:white; padding:5px; cursor:pointer;">+</button>
                                     </div>
-                                    <select onchange="assignToTeam('${u.id}', this.value)" style="background:#000; color:var(--faction-accent); border:1px solid var(--border-ui); font-size:0.5rem;">
+                                    <select onchange="assignToTeam('${u.id}', this.value)" style="background:#000; color:var(--faction-accent); border:1px solid var(--border-ui); font-size:0.5rem; padding:2px;">
                                         ${Object.keys(teams).map(t => `<option value="${t}" ${t === teamName ? 'selected' : ''}>${t}</option>`).join('')}
                                     </select>
                                     <button onclick="toggleRoster('${u.id}')" style="background:none; border:none; color:var(--text-dim); cursor:pointer;">✕</button>
@@ -280,42 +331,58 @@ const renderRoster = () => {
 
 window.assignToTeam = (unitId, teamName) => {
     Object.keys(teams).forEach(t => teams[t] = teams[t].filter(id => id !== unitId));
+    if (!teams[teamName]) teams[teamName] = [];
     teams[teamName].push(unitId);
     if (!roster.includes(unitId)) roster.push(unitId);
-    saveToDisk();
+    showToast(`REASSIGNED_TO_${teamName}`, "info");
+    saveToDisk(true);
     renderRoster();
 };
 
 window.createNewTeam = () => {
-    const name = prompt("ENTER_NEW_TEAM_DESIGNATION:").toUpperCase();
-    if (name && !teams[name]) { teams[name] = []; saveToDisk(); renderRoster(); }
+    const name = prompt("ENTER_NEW_TEAM_DESIGNATION:");
+    if (name) {
+        const cleanName = name.trim().toUpperCase();
+        if (cleanName && !teams[cleanName]) {
+            teams[cleanName] = [];
+            showToast(`SQUAD_${cleanName}_ONLINE`, "info");
+            saveToDisk(true);
+            renderRoster();
+        }
+    }
 };
 
 window.toggleRoster = (id) => {
+    const u = db.find(unit => unit.id === id);
     if (roster.includes(id)) {
         roster = roster.filter(i => i !== id);
         Object.keys(teams).forEach(t => teams[t] = teams[t].filter(uid => uid !== id));
+        showToast(`${u.name.toUpperCase()}_DISENGAGED`, "info");
     } else {
         roster.push(id);
-        teams["ALPHA"].push(id);
+        const defaultTeam = teams["ALPHA"] ? "ALPHA" : Object.keys(teams)[0];
+        teams[defaultTeam].push(id);
+        showToast(`${u.name.toUpperCase()}_ENGAGED`, "info");
     }
     const cur = viewHistory[viewHistory.length - 1];
     if (cur === 'roster') renderRoster();
     else if (cur === 'card') renderCard(id);
     updateRosterBadge();
-    saveToDisk();
+    saveToDisk(true);
 };
 
 const updateRosterBadge = () => { if (rosterBtn) rosterBtn.innerHTML = roster.length > 0 ? `ROSTER [${roster.length}]` : `ROSTER`; };
 
 window.clearRoster = () => {
     if(confirm("TERMINATE ALL ACTIVE DEPLOYMENTS?")) {
-        roster = []; unitWounds = {}; teams = { "ALPHA": [], "BRAVO": [], "RESERVES": [] };
-        renderRoster(); updateRosterBadge(); saveToDisk();
+        roster = []; unitWounds = {}; 
+        teams = { "ALPHA": [], "BRAVO": [], "RESERVES": [] };
+        showToast("DATA_PURGE_COMPLETE", "hazard");
+        renderRoster(); updateRosterBadge(); saveToDisk(true);
     }
 };
 
-// --- 7. SEARCH & NAVIGATION ---
+// --- 8. SEARCH & NAVIGATION ---
 searchBar.addEventListener('input', (e) => {
     const q = e.target.value.toLowerCase();
     if (!q) { suggestionsDiv.classList.add('hidden'); renderHome(); return; }
@@ -345,10 +412,12 @@ window.switchTab = (id, btn) => {
 };
 window.updateWounds = (id, amt) => {
     const u = db.find(unit => unit.id === id);
+    if (!u) return;
     unitWounds[id] = Math.max(0, Math.min(parseInt(u.w), (unitWounds[id] || parseInt(u.w)) + amt));
+    if (unitWounds[id] === 0) showToast(`${u.name.toUpperCase()}_CRITICAL_FAILURE`, "hazard");
     const d1 = document.getElementById('wound-display-text'), d2 = document.getElementById(`roster-wounds-${id}`);
     if (d1) d1.innerText = unitWounds[id]; if (d2) d2.innerText = unitWounds[id];
-    saveToDisk();
+    saveToDisk(true);
 };
 
 if (backBtn) {
