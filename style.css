@@ -806,3 +806,378 @@ h1 { font-size: 0.85rem; font-weight: 800; letter-spacing: 3px; text-transform: 
     0%, 100% { opacity: 1; }
     50% { opacity: 0.3; }
 }
+
+.suggestion-item {
+    background: var(--bg-surface);
+    border-bottom: 1px solid var(--border-ui);
+    padding: 8px 15px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    transition: background 0.2s;
+}
+
+.suggestion-item:hover {
+    background: var(--bg-elevated);
+    border-left: 3px solid var(--faction-accent);
+}
+
+.suggestion-item span:first-child {
+    font-size: 0.75rem;
+    font-weight: 700;
+    text-transform: uppercase;
+}
+
+.suggestion-item span:last-child {
+    font-size: 0.6rem;
+    color: var(--text-dim);
+    letter-spacing: 1px; }
+
+/* --- ANIMATIONS --- */
+#app-content {
+    transition: transform 0.2s ease-out, opacity 0.2s ease-out;
+}
+
+/* --- BREADCRUMB DROPDOWNS --- */
+.crumb-group {
+    display: inline-flex;
+    align-items: center;
+    position: relative;
+}
+
+.drp-arrow {
+    background: none;
+    border: none;
+    color: var(--faction-accent);
+    font-size: 0.5rem;
+    cursor: pointer;
+    padding: 0 5px;
+}
+
+.drp-content {
+    display: none;
+    position: absolute;
+    top: 100%;
+    left: 0;
+    background: var(--bg-surface);
+    border: 1px solid var(--faction-accent);
+    z-index: 2000;
+    min-width: 150px;
+    box-shadow: 0 10px 30px rgba(0,0,0,0.8);
+}
+
+.crumb-group:hover .drp-content { display: block; }
+
+.drp-content div {
+    padding: 8px 12px;
+    font-size: 0.65rem;
+    cursor: pointer;
+    border-bottom: 1px solid rgba(255,180,0,0.1);
+}
+
+.drp-content div:hover { background: var(--faction-accent); color: #000; }
+
+/* --- HISTORY TAPE --- */
+#history-tape {
+    position: fixed;
+    bottom: 0;
+    width: 100%;
+    max-width: 500px;
+    background: #000;
+    border-top: 2px solid var(--faction-accent);
+    display: flex;
+    align-items: center;
+    padding: 5px 10px;
+    gap: 10px;
+    overflow-x: auto;
+    z-index: 3000;
+}
+
+.tape-label { font-size: 0.5rem; color: var(--text-dim); white-space: nowrap; }
+.tape-chip {
+    background: var(--bg-elevated);
+    padding: 4px 10px;
+    font-size: 0.6rem;
+    white-space: nowrap;
+    border: 1px solid var(--border-ui);
+    cursor: pointer;
+}
+
+/* --- SEARCH ADD BUTTON --- */
+.add-btn {
+    background: var(--faction-accent);
+    border: none;
+    color: #000;
+    font-size: 0.55rem;
+    font-weight: 800;
+    padding: 4px 8px;
+    cursor: pointer;
+}
+
+/* --- ANIMATIONS --- */
+#app-content {
+    transition: transform 0.2s ease-out, opacity 0.2s ease-out;
+}
+
+/* --- ADVANCED BREADCRUMBS --- */
+#breadcrumbs {
+    display: flex;
+    align-items: center;
+    gap: 5px;
+    padding: 10px 15px;
+    background: #000;
+    border-bottom: 1px solid var(--border-ui);
+    overflow-x: auto;
+}
+
+.crumb-group {
+    position: relative;
+    display: flex;
+    align-items: center;
+    white-space: nowrap;
+}
+
+.crumb {
+    font-size: 0.65rem;
+    font-weight: 800;
+    color: var(--faction-accent);
+    cursor: pointer;
+    text-transform: uppercase;
+    padding: 2px 4px;
+}
+
+.drp-arrow {
+    font-size: 0.5rem;
+    color: var(--text-dim);
+    margin-left: 2px;
+    cursor: pointer;
+}
+
+.drp-content {
+    display: none;
+    position: absolute;
+    top: 100%;
+    left: 0;
+    background: var(--bg-surface);
+    border: 1px solid var(--faction-accent);
+    min-width: 140px;
+    z-index: 5000;
+    box-shadow: 0 10px 20px rgba(0,0,0,0.8);
+}
+
+.crumb-group:hover .drp-content { display: block; }
+
+.drp-item {
+    padding: 8px 12px;
+    font-size: 0.6rem;
+    color: var(--text-high);
+    border-bottom: 1px solid rgba(255,180,0,0.1);
+    cursor: pointer;
+}
+
+.drp-item:hover { background: var(--faction-accent); color: #000; }
+
+/* --- HISTORY TAPE (HUD FOOTER) --- */
+#history-tape {
+    position: fixed;
+    bottom: 0;
+    width: 100%;
+    max-width: 500px;
+    background: rgba(5, 5, 5, 0.95);
+    backdrop-filter: blur(5px);
+    border-top: 1px solid var(--faction-accent);
+    display: flex;
+    align-items: center;
+    padding: 8px 15px;
+    gap: 15px;
+    z-index: 4000;
+}
+
+.tape-label { font-size: 0.5rem; font-weight: 800; color: var(--text-dim); white-space: nowrap; }
+.tape-items { display: flex; gap: 8px; overflow-x: auto; scrollbar-width: none; }
+.tape-items::-webkit-scrollbar { display: none; }
+
+.tape-chip {
+    background: var(--bg-elevated);
+    border: 1px solid var(--border-ui);
+    padding: 3px 10px;
+    font-size: 0.55rem;
+    color: var(--text-high);
+    white-space: nowrap;
+    cursor: pointer;
+}
+
+.tape-chip:hover { border-color: var(--faction-accent); }
+
+.pts-total {
+    margin-left: auto;
+    font-size: 0.7rem;
+    font-weight: 900;
+    color: var(--accent-hazard);
+    white-space: nowrap;
+}
+
+/* --- TACTICAL STATUS BAR (HUD) --- */
+#history-tape {
+    position: fixed;
+    bottom: 0;
+    width: 100%;
+    max-width: 500px;
+    background: rgba(5, 5, 5, 0.98);
+    backdrop-filter: blur(10px);
+    border-top: 1px solid var(--faction-accent);
+    display: flex;
+    flex-direction: column; /* Stacked for more data */
+    padding: 10px 15px;
+    z-index: 4000;
+}
+
+.hud-top-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 8px;
+}
+
+.validation-error {
+    font-size: 0.55rem;
+    color: #ef4444;
+    font-weight: 800;
+    text-transform: uppercase;
+    animation: blink 1s infinite;
+}
+
+.pts-total {
+    font-size: 0.8rem;
+    font-weight: 900;
+    color: var(--accent-hazard);
+    text-shadow: 0 0 10px var(--faction-glow);
+}
+
+/* --- RECENT INTEL CHIPS --- */
+.tape-items {
+    display: flex;
+    gap: 8px;
+    overflow-x: auto;
+    padding-bottom: 2px;
+}
+
+.tape-chip {
+    background: var(--bg-elevated);
+    border: 1px solid var(--border-ui);
+    padding: 4px 12px;
+    font-size: 0.55rem;
+    color: var(--text-high);
+    white-space: nowrap;
+    cursor: pointer;
+    transition: all 0.2s;
+}
+
+.tape-chip:hover { border-color: var(--faction-accent); background: #000; }
+
+@keyframes blink {
+    0%, 100% { opacity: 1; }
+    50% { opacity: 0.4; }
+}
+
+#tactical-hud {
+    position: fixed;
+    bottom: 0;
+    left: 0;
+    width: 100%;
+    background: rgba(5, 5, 5, 0.95);
+    border-top: 1px solid var(--faction-accent);
+    padding: 10px 20px;
+    z-index: 9999;
+    box-shadow: 0 -5px 20px rgba(0,0,0,0.5);
+}
+
+.hud-content {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    max-width: 800px;
+    margin: 0 auto;
+}
+
+.history-chip {
+    display: inline-block;
+    background: var(--bg-elevated);
+    border: 1px solid var(--border-ui);
+    padding: 4px 12px;
+    margin-left: 8px;
+    font-size: 0.6rem;
+    cursor: pointer;
+    transition: all 0.2s;
+}
+
+.history-chip:hover {
+    border-color: var(--faction-accent);
+    color: var(--faction-accent);
+}
+
+.pts-value {
+    color: var(--accent-hazard);
+    font-weight: 900;
+    margin-left: 10px;
+}
+
+#tactical-hud {
+    position: fixed;
+    bottom: 0;
+    left: 0;
+    width: 100%;
+    z-index: 9999;
+    background: rgba(0, 0, 0, 0.95);
+    border-top: 1px solid var(--faction-accent);
+    padding: 10px 15px;
+    box-shadow: 0 -5px 15px rgba(0,0,0,0.5);
+}
+
+.history-chip {
+    transition: all 0.2s;
+    text-transform: uppercase;
+    font-weight: 800;
+}
+
+.history-chip:hover {
+    color: var(--faction-accent);
+    border-color: var(--faction-accent) !important;
+}
+
+/* Ensure the main app content doesn't get hidden behind the HUD */
+#app-content {
+    margin-bottom: 80px; 
+}
+
+#tactical-hud {
+    position: fixed;
+    bottom: 0;
+    left: 0;
+    width: 100%;
+    background: rgba(5, 5, 5, 0.95);
+    border-top: 1px solid var(--faction-accent);
+    padding: 10px 15px;
+    z-index: 9999;
+    box-shadow: 0 -5px 15px rgba(0,0,0,0.5);
+}
+
+.history-chip {
+    background: var(--bg-elevated);
+    border: 1px solid var(--border-ui);
+    padding: 4px 10px;
+    font-size: 0.55rem;
+    font-weight: 800;
+    cursor: pointer;
+    transition: all 0.2s;
+    white-space: nowrap;
+}
+
+.history-chip:hover {
+    border-color: var(--faction-accent);
+    color: var(--faction-accent);
+}
+
+#app-content {
+    padding-bottom: 80px; /* Room for the HUD */
+}

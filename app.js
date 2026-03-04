@@ -1,11 +1,20 @@
+/**
+ * WEHRSELECTOR: COMMAND UPLINK V4.0
+ * INTEGRATED ARMY CREATOR & TACTICAL HUD
+ */
+
 // --- 1. STATE & DATA ---
 let db = [];
 let viewHistory = ['superfactions'];
+let viewedHistory = []; 
 let currentSelection = { superFaction: null, faction: null, subfaction: null, unitId: null };
-let lastViewedUnitId = null; 
 let roster = [];
 let unitWounds = {};
 let teams = { "ALPHA": [], "BRAVO": [], "RESERVES": [] };
+
+// New state for Army Validation
+let lockedFaction = null; 
+let warlordId = null;    
 
 const superFactions = {
     "Imperium": ["Adepta Sororitas", "Adeptus Custodes", "Adeptus Mechanicus", "Adeptus Titanicus", "Astra Militarum", "Grey Knights", "Imperial Agents", "Imperial Knights", "Space Marines"],
@@ -38,7 +47,42 @@ const searchBar = document.getElementById('search-bar');
 const suggestionsDiv = document.getElementById('search-suggestions');
 const rosterBtn = document.getElementById('roster-toggle');
 
-// --- 2. TACTICAL TOAST SYSTEM & GLITCH EFFECT ---
+// --- 2. TACTICAL HUD & POINTS LOGIC ---
+const renderTacticalHUD = () => {
+    const totalPts = roster.reduce((sum, id) => {
+        const u = db.find(unit => unit.id === id);
+        const unitPoints = (u && u.pts) ? parseInt(u.pts) : 0;
+        return sum + unitPoints;
+    }, 0);
+
+    const recentUnits = [...new Set(viewedHistory)].reverse().slice(0, 5);
+
+    let hud = document.getElementById('tactical-hud');
+    if (!hud) {
+        hud = document.createElement('div');
+        hud.id = 'tactical-hud';
+        document.body.appendChild(hud);
+    }
+
+    hud.innerHTML = `
+        <div class="hud-content" style="display:flex; justify-content:space-between; align-items:center;">
+            <div class="hud-history" style="display:flex; gap:10px; align-items:center;">
+                <span style="font-size:0.5rem; color:var(--text-dim); font-weight:800;">RECENT_INTEL:</span>
+                <div style="display:flex; gap:5px;">
+                    ${recentUnits.map(id => {
+                        const u = db.find(unit => unit.id === id);
+                        return u ? `<div class="history-chip" onclick="selectUnit('${id}')" style="cursor:pointer; background:var(--bg-elevated); border:1px solid var(--border-ui); padding:2px 8px; font-size:0.6rem;">${u.name}</div>` : '';
+                    }).join('')}
+                </div>
+            </div>
+            <div class="hud-points" style="text-align:right;">
+                <span style="font-size:0.5rem; color:var(--text-dim); font-weight:800;">ARMY_VALUE:</span>
+                <div style="color:var(--accent-hazard); font-weight:900; font-size:0.9rem;">${totalPts} PTS</div>
+            </div>
+        </div>`;
+};
+
+// --- 3. TOAST & GLITCH SYSTEMS ---
 const showToast = (message, type = 'info') => {
     let container = document.getElementById('toast-container');
     if (!container) {
@@ -46,30 +90,23 @@ const showToast = (message, type = 'info') => {
         container.id = 'toast-container';
         document.body.appendChild(container);
     }
-
     const toast = document.createElement('div');
     toast.className = `toast-alert ${type}`;
     const icon = type === 'hazard' ? '[!]' : '>>';
-    
-    // Initial content
     toast.innerHTML = `<span class="toast-icon">${icon}</span> <span class="toast-msg">${message}</span>`;
     container.appendChild(toast);
 
-    // Telemetry Glitch Effect: Randomize characters for 150ms
     const msgSpan = toast.querySelector('.toast-msg');
     const originalText = message;
     const chars = "!<>-_\\/[]{}—=+*^?#________";
     let iterations = 0;
-    
     const glitchInterval = setInterval(() => {
-        msgSpan.innerText = originalText.split("")
-            .map((char, index) => {
-                if (index < iterations) return originalText[index];
-                return chars[Math.floor(Math.random() * chars.length)];
-            }).join("");
-        
+        msgSpan.innerText = originalText.split("").map((char, index) => {
+            if (index < iterations) return originalText[index];
+            return chars[Math.floor(Math.random() * chars.length)];
+        }).join("");
         if (iterations >= originalText.length) clearInterval(glitchInterval);
-        iterations += 1 / 2;
+        iterations += 1/2;
     }, 30);
 
     setTimeout(() => {
@@ -78,12 +115,10 @@ const showToast = (message, type = 'info') => {
     }, 3000);
 };
 
-// --- 3. PERSISTENCE ENGINE ---
+// --- 4. PERSISTENCE ---
 const saveToDisk = (silent = false) => {
     localStorage.setItem('arkRaider_session', JSON.stringify({
-        roster: roster,
-        unitWounds: unitWounds,
-        teams: teams
+        roster, unitWounds, teams, viewedHistory, lockedFaction, warlordId
     }));
     if (!silent) showToast("DATA_SYNC_SUCCESSFUL", "info");
 };
@@ -95,7 +130,10 @@ const loadFromDisk = () => {
             const data = JSON.parse(saved);
             roster = data.roster || [];
             unitWounds = data.unitWounds || {};
+            viewedHistory = data.viewedHistory || [];
             teams = (data.teams && Object.keys(data.teams).length > 0) ? data.teams : { "ALPHA": [], "BRAVO": [], "RESERVES": [] };
+            lockedFaction = data.lockedFaction || null;
+            warlordId = data.warlordId || null;
             updateRosterBadge();
         } catch (e) {
             showToast("CORRUPT_BUFFER_REPAIRED", "hazard");
@@ -103,16 +141,6 @@ const loadFromDisk = () => {
         }
     }
 };
-
-// --- 4. INITIALIZATION ---
-fetch('wehrselector_data.json')
-    .then(res => res.json())
-    .then(data => {
-        db = data;
-        loadFromDisk();
-        renderHome();
-        showToast("SYSTEM_READY // UPLINK_STABLE", "info");
-    });
 
 // --- 5. THEME & UI HELPERS ---
 const setTheme = (color) => {
@@ -128,7 +156,6 @@ const resetTheme = () => {
 const updateUI = (view, unitId = null) => {
     if (!breadcrumbsDiv) return;
     let crumbs = [`<span class="breadcrumb-item" onclick="goHome()">CMD</span>`];
-    
     if (view === 'roster') crumbs.push(`<span class="breadcrumb-item active">BATTLEGROUP</span>`);
     else if (view === 'factions') crumbs.push(`<span class="breadcrumb-item active">${currentSelection.superFaction}</span>`);
     else if (view === 'subfactions') {
@@ -142,25 +169,22 @@ const updateUI = (view, unitId = null) => {
         crumbs.push(`<span class="breadcrumb-item" onclick="renderUnitList('${currentSelection.faction}', '${currentSelection.subfaction}')">${currentSelection.subfaction}</span>`);
         crumbs.push(`<span class="breadcrumb-item active">${u ? u.name : 'DATA'}</span>`);
     }
-
     breadcrumbsDiv.innerHTML = crumbs.join(' // ');
     breadcrumbsDiv.classList.toggle('hidden', view === 'superfactions');
     if (backBtn) backBtn.classList.toggle('hidden', view === 'superfactions');
 };
 
-// --- 6. RENDER FUNCTIONS ---
+// --- 6. RENDER LOGIC ---
 const renderHome = () => {
     currentSelection = { superFaction: null, faction: null, subfaction: null, unitId: null };
     viewHistory = ['superfactions'];
     resetTheme();
     updateUI('superfactions');
+    renderTacticalHUD();
     const sfLogos = { "Imperium": "IMPERIUM.SVG", "Chaos": "CHAOS.SVG", "Xenos": "XENOS.SVG" };
-
     contentDiv.innerHTML = Object.keys(superFactions).map(sf => `
         <div class="menu-card" onclick="selectSuperFaction('${sf}')">
-            <div class="sf-icon-container">
-                <img src="assets/logos/${sfLogos[sf]}" class="faction-logo sf-large-logo">
-            </div>
+            <div class="sf-icon-container"><img src="assets/logos/${sfLogos[sf]}" class="faction-logo sf-large-logo"></div>
             <h2>${sf}</h2>
             <p>SYSTEM_OVERRIDE: ${superFactions[sf].length} ACTIVE_NODES</p>
         </div>`).join('');
@@ -195,48 +219,53 @@ const renderUnitList = (f, s) => {
     updateUI('units');
     const units = db.filter(u => u.faction === f && u.subfaction === s).sort((a,b) => a.name.localeCompare(b.name));
     contentDiv.innerHTML = `<ul class="list-menu vertical">` + 
-        units.map(u => `
-            <li class="menu-card" onclick="selectUnit('${u.id}')">
-                <h2>${u.name}</h2>
-            </li>`).join('') + `</ul>`;
+        units.map(u => `<li class="menu-card" onclick="selectUnit('${u.id}')"><h2>${u.name}</h2></li>`).join('') + `</ul>`;
 };
 
 const renderCard = (unitId) => {
     const unit = db.find(u => u.id === unitId);
     if (!unit) return;
-
-    if (currentSelection.unitId && currentSelection.unitId !== unitId) lastViewedUnitId = currentSelection.unitId;
+    
+    if (!viewedHistory.includes(unitId)) viewedHistory.push(unitId);
     currentSelection.unitId = unitId;
 
     const curUnits = db.filter(u => u.faction === currentSelection.faction && u.subfaction === currentSelection.subfaction).sort((a,b) => a.name.localeCompare(b.name));
     const idx = curUnits.findIndex(u => u.id === unitId);
-    const prev = curUnits[idx - 1];
-    const next = curUnits[idx + 1];
+    const prev = curUnits[idx - 1], next = curUnits[idx + 1];
 
-    setTheme(unit.faction);
+    setTheme(factionColors[unit.faction]);
     updateUI('card', unitId);
+    renderTacticalHUD();
+    
     if (unitWounds[unit.id] === undefined) unitWounds[unit.id] = parseInt(unit.w);
+
+    const isSupreme = unit.abilities.some(a => a.name === "SUPREME COMMANDER");
 
     contentDiv.innerHTML = `
         <div class="unit-card">
-            ${lastViewedUnitId ? `
-            <div class="history-bar" onclick="renderCard('${lastViewedUnitId}')" style="background:rgba(255,180,0,0.05); text-align:center; padding:5px; border-bottom:1px solid var(--border-ui); cursor:pointer;">
-                <span style="font-size:0.55rem; color:var(--accent-hazard);">[ RECALL_LAST_INTEL: ${db.find(u => u.id === lastViewedUnitId).name.toUpperCase()} ]</span>
-            </div>` : ''}
-
             <div class="unit-nav-header" style="display:flex; justify-content:space-between; align-items:center; background:#000; padding:5px 15px; border-bottom:1px solid var(--border-ui);">
-                <button class="nav-arrow" ${prev ? `onclick="renderCard('${prev.id}')"` : 'disabled'} style="opacity:${prev ? '1' : '0.2'}">◀ PREV</button>
+                <button class="nav-arrow" ${prev ? `onclick="selectUnit('${prev.id}')"` : 'disabled'} style="opacity:${prev ? '1' : '0.2'}">◀ PREV</button>
                 <span style="font-size:0.5rem; color:var(--text-dim);">SCRUBBING: ${idx + 1} / ${curUnits.length}</span>
-                <button class="nav-arrow" ${next ? `onclick="renderCard('${next.id}')"` : 'disabled'} style="opacity:${next ? '1' : '0.2'}">NEXT ▶</button>
+                <button class="nav-arrow" ${next ? `onclick="selectUnit('${next.id}')"` : 'disabled'} style="opacity:${next ? '1' : '0.2'}">NEXT ▶</button>
             </div>
-            
             <div class="unit-header">
                 <div style="display: flex; align-items: center; gap: 10px;">
                     <img src="assets/logos/${factionLogos[unit.faction] || 'generic.svg'}" class="faction-logo" style="width:22px; height:22px;">
                     <span class="unit-name">${unit.name}</span>
                 </div>
-                <button class="action-btn" onclick="toggleRoster('${unit.id}')">
-                    ${roster.includes(unit.id) ? '✕ DISENGAGE' : '📌 ENGAGE'}
+                <div style="display:flex; align-items:center; gap:10px;">
+                    <span style="color:var(--accent-hazard); font-weight:900; font-size:0.8rem;">${unit.pts || 0} PTS</span>
+                    <button class="action-btn" onclick="toggleRoster('${unit.id}')">
+                        ${roster.includes(unit.id) ? '✕ DISENGAGE' : '📌 ENGAGE'}
+                    </button>
+                </div>
+            </div>
+
+            <div style="padding: 0 15px 10px 15px;">
+                <button class="action-btn ${warlordId === unit.id ? 'active' : ''}" 
+                        onclick="setWarlord('${unit.id}')"
+                        style="width: 100%; border-color: var(--accent-hazard); font-size: 0.6rem;">
+                    ${warlordId === unit.id ? '★ COMMAND_LINK_ACTIVE' : '☆ DESIGNATE_WARLORD'}
                 </button>
             </div>
 
@@ -248,12 +277,7 @@ const renderCard = (unitId) => {
                 <div class="stat-item"><span class="stat-label">LD</span><span class="stat-val" style="color:#a855f7;">${unit.ld}</span></div>
                 <div class="stat-item"><span class="stat-label">OC</span><span class="stat-val">${unit.oc}</span></div>
             </div>
-
-            <div class="tab-bar">
-                <button class="tab-btn active" onclick="switchTab('weapons', this)">ARMAMENT</button>
-                <button class="tab-btn" onclick="switchTab('abilities', this)">INTEL</button>
-            </div>
-
+            <div class="tab-bar"><button class="tab-btn active" onclick="switchTab('weapons', this)">ARMAMENT</button><button class="tab-btn" onclick="switchTab('abilities', this)">INTEL</button></div>
             <div id="tab-weapons" class="tab-content">
                 <div class="weapon-row header"><span>WEAPON</span><span>R</span><span>A</span><span>BS</span><span>S</span><span>AP</span><span>D</span></div>
                 ${unit.weapons.map(w => `
@@ -263,12 +287,10 @@ const renderCard = (unitId) => {
                             <span>${w.range}</span><span>${w.a}</span><span>${w.ws_bs}+</span><span>${w.s}</span>
                             <span class="weapon-ap">${w.ap}</span><span class="weapon-d">${w.d}</span>
                         </div>
-                        ${w.keywords ? `<div class="weapon-keywords">// ${Array.isArray(w.keywords) ? w.keywords.join(' // ') : w.keywords}</div>` : ''}
+                        ${w.keywords ? `<div class="weapon-keywords">// ${w.keywords}</div>` : ''}
                     </div>`).join('')}
             </div>
-
             <div id="tab-abilities" class="tab-content hidden">${unit.abilities.map(a => `<div class="ability-card"><div class="ability-name">${a.name}</div><div class="ability-text">${a.text}</div></div>`).join('')}</div>
-            
             <div class="wound-tracker">
                 <button class="counter-btn" onclick="updateWounds('${unit.id}', -1)">−</button>
                 <div class="wound-display"><span id="wound-display-text" style="font-size:1.2rem; font-weight:800; color:var(--accent-hazard);">${unitWounds[unit.id]}</span><span style="font-size:0.6rem; color:var(--text-dim);">/ ${unit.w} HP</span></div>
@@ -277,18 +299,83 @@ const renderCard = (unitId) => {
         </div>`;
 };
 
-// --- 7. TEAM & ROSTER SYSTEM ---
-window.showRoster = () => {
-    viewHistory.push('roster');
-    renderRoster();
+// --- 7. ARMY & ROSTER LOGIC ---
+window.toggleRoster = (id) => {
+    const unit = db.find(u => u.id === id);
+    if (!unit) return;
+
+    const index = roster.indexOf(id);
+    if (index === -1) {
+        // Validation: Faction Lock
+        if (lockedFaction && unit.faction !== lockedFaction) {
+            showToast(`DEPLOYMENT_ERROR: ARMY LOCKED TO ${lockedFaction.toUpperCase()}`, "hazard");
+            return;
+        }
+
+        // Validation: Unit Limits
+        const count = roster.filter(uId => uId === id).length;
+        const isBattleline = unit.subfaction === "Battleline";
+        const isUnique = unit.abilities.some(a => a.name === "CHOSEN OF THE EMPEROR" || a.name === "SUPREME COMMANDER");
+
+        if (isUnique && count >= 1) {
+            showToast(`UNIQUE_ENTITY_LIMIT_REACHED`, "hazard");
+            return;
+        }
+        if (!isBattleline && count >= 3) {
+            showToast(`STRIKE_FORCE_LIMIT_REACHED: MAX 3`, "hazard");
+            return;
+        }
+
+        roster.push(id);
+        if (!lockedFaction) lockedFaction = unit.faction;
+        
+        const defaultTeam = teams["ALPHA"] ? "ALPHA" : Object.keys(teams)[0];
+        teams[defaultTeam].push(id);
+        showToast(`${unit.name.toUpperCase()}_ENGAGED`, "info");
+    } else {
+        roster.splice(index, 1);
+        Object.keys(teams).forEach(t => teams[t] = teams[t].filter(uid => uid !== id));
+        
+        if (roster.length === 0) lockedFaction = null;
+        if (warlordId === id && !roster.includes(id)) warlordId = null;
+        
+        showToast(`${unit.name.toUpperCase()}_DISENGAGED`, "info");
+    }
+    
+    const cur = viewHistory[viewHistory.length - 1];
+    if (cur === 'roster') renderRoster();
+    else if (cur === 'card') renderCard(id);
+    
+    updateRosterBadge();
+    saveToDisk(true);
+    renderTacticalHUD();
+};
+
+window.setWarlord = (id) => {
+    const unit = db.find(u => u.id === id);
+    if (!roster.includes(id)) {
+        showToast("UNIT_NOT_IN_ROSTER", "hazard");
+        return;
+    }
+    
+    warlordId = id;
+    showToast(`${unit.name.toUpperCase()}_DESIGNATED_WARLORD`, "info");
+    renderCard(id);
+    saveToDisk(true);
+};
+
+window.selectUnit = (id) => {
+    if (!viewedHistory.includes(id)) viewedHistory.push(id);
+    viewHistory.push('card');
+    suggestionsDiv.classList.add('hidden');
+    renderCard(id);
+    renderTacticalHUD();
 };
 
 const renderRoster = () => {
     updateUI('roster');
     resetTheme();
-    
     if (!teams["ALPHA"]) teams["ALPHA"] = [];
-
     contentDiv.innerHTML = `
         <div class="team-controls" style="margin-bottom:20px; display:flex; justify-content:space-between; align-items:center; border-bottom:1px solid var(--border-ui); padding-bottom:10px;">
             <h1 style="color:var(--accent-hazard); font-size:1rem;">BATTLEGROUP_INTEL</h1>
@@ -297,26 +384,20 @@ const renderRoster = () => {
         ${Object.keys(teams).map(teamName => {
             const teamUnits = teams[teamName].map(id => db.find(u => u.id === id)).filter(u => u);
             if (teamUnits.length === 0 && teamName !== "ALPHA") return '';
-            
             return `
                 <div class="team-block" style="margin-bottom:20px; border: 1px solid var(--border-ui);">
                     <div style="background:var(--bg-elevated); padding:8px 15px; display:flex; justify-content:space-between; border-bottom:1px solid var(--faction-accent);">
                         <span style="font-weight:800; color:var(--faction-accent); font-size:0.7rem;">SQUAD // ${teamName}</span>
                     </div>
                     <div style="padding:10px;">
-                        ${teamUnits.length === 0 ? '<p style="font-size:0.6rem; color:var(--text-dim); text-align:center;">EMPTY_SQUAD</p>' : ''}
                         ${teamUnits.map(u => `
                             <div class="roster-item-layout" style="margin-bottom:12px; display:flex; justify-content:space-between; align-items:center;">
                                 <div onclick="selectUnit('${u.id}')" style="cursor:pointer;">
-                                    <h2 style="font-size:0.85rem;">${u.name}</h2>
-                                    <p style="font-size:0.5rem; color:var(--text-dim);">${u.faction}</p>
+                                    <h2 style="font-size:0.85rem;">${warlordId === u.id ? '★ ' : ''}${u.name}</h2>
+                                    <p style="font-size:0.5rem; color:var(--text-dim);">${u.faction} // ${u.pts || 0} PTS</p>
                                 </div>
                                 <div style="display:flex; gap:10px; align-items:center;">
-                                    <div class="wound-counter-small" style="display:flex; align-items:center; background:#000; border:1px solid var(--border-ui); padding:2px;">
-                                        <button onclick="updateWounds('${u.id}', -1)" style="background:none; border:none; color:white; padding:5px; cursor:pointer;">−</button>
-                                        <span id="roster-wounds-${u.id}" style="color:var(--accent-hazard); font-weight:800; min-width:25px; text-align:center;">${unitWounds[u.id] || u.w}</span>
-                                        <button onclick="updateWounds('${u.id}', 1)" style="background:none; border:none; color:white; padding:5px; cursor:pointer;">+</button>
-                                    </div>
+                                    <div class="wound-counter-small"><button onclick="updateWounds('${u.id}', -1)">−</button><span id="roster-wounds-${u.id}">${unitWounds[u.id] || u.w}</span><button onclick="updateWounds('${u.id}', 1)">+</button></div>
                                     <select onchange="assignToTeam('${u.id}', this.value)" style="background:#000; color:var(--faction-accent); border:1px solid var(--border-ui); font-size:0.5rem; padding:2px;">
                                         ${Object.keys(teams).map(t => `<option value="${t}" ${t === teamName ? 'selected' : ''}>${t}</option>`).join('')}
                                     </select>
@@ -329,87 +410,7 @@ const renderRoster = () => {
         <button class="action-btn" onclick="clearRoster()" style="width:100%; margin-top:20px; border-color:#ef4444; color:#ef4444;">TERMINATE_ALL_SESSIONS</button>`;
 };
 
-window.assignToTeam = (unitId, teamName) => {
-    Object.keys(teams).forEach(t => teams[t] = teams[t].filter(id => id !== unitId));
-    if (!teams[teamName]) teams[teamName] = [];
-    teams[teamName].push(unitId);
-    if (!roster.includes(unitId)) roster.push(unitId);
-    showToast(`REASSIGNED_TO_${teamName}`, "info");
-    saveToDisk(true);
-    renderRoster();
-};
-
-window.createNewTeam = () => {
-    const name = prompt("ENTER_NEW_TEAM_DESIGNATION:");
-    if (name) {
-        const cleanName = name.trim().toUpperCase();
-        if (cleanName && !teams[cleanName]) {
-            teams[cleanName] = [];
-            showToast(`SQUAD_${cleanName}_ONLINE`, "info");
-            saveToDisk(true);
-            renderRoster();
-        }
-    }
-};
-
-window.toggleRoster = (id) => {
-    const u = db.find(unit => unit.id === id);
-    if (roster.includes(id)) {
-        roster = roster.filter(i => i !== id);
-        Object.keys(teams).forEach(t => teams[t] = teams[t].filter(uid => uid !== id));
-        showToast(`${u.name.toUpperCase()}_DISENGAGED`, "info");
-    } else {
-        roster.push(id);
-        const defaultTeam = teams["ALPHA"] ? "ALPHA" : Object.keys(teams)[0];
-        teams[defaultTeam].push(id);
-        showToast(`${u.name.toUpperCase()}_ENGAGED`, "info");
-    }
-    const cur = viewHistory[viewHistory.length - 1];
-    if (cur === 'roster') renderRoster();
-    else if (cur === 'card') renderCard(id);
-    updateRosterBadge();
-    saveToDisk(true);
-};
-
-const updateRosterBadge = () => { if (rosterBtn) rosterBtn.innerHTML = roster.length > 0 ? `ROSTER [${roster.length}]` : `ROSTER`; };
-
-window.clearRoster = () => {
-    if(confirm("TERMINATE ALL ACTIVE DEPLOYMENTS?")) {
-        roster = []; unitWounds = {}; 
-        teams = { "ALPHA": [], "BRAVO": [], "RESERVES": [] };
-        showToast("DATA_PURGE_COMPLETE", "hazard");
-        renderRoster(); updateRosterBadge(); saveToDisk(true);
-    }
-};
-
-// --- 8. SEARCH & NAVIGATION ---
-searchBar.addEventListener('input', (e) => {
-    const q = e.target.value.toLowerCase();
-    if (!q) { suggestionsDiv.classList.add('hidden'); renderHome(); return; }
-    const matches = db.filter(u => u.name.toLowerCase().includes(q));
-    suggestionsDiv.classList.toggle('hidden', matches.length === 0);
-    suggestionsDiv.innerHTML = matches.slice(0,5).map(m => `<div class="suggestion-item" onclick="selectSuggestion('${m.id}')"><span>${m.name}</span><span style="font-size:0.5rem; color:var(--text-dim);">${m.faction}</span></div>`).join('');
-    renderSearchResults(matches);
-});
-
-window.selectSuggestion = (id) => { searchBar.value = db.find(u => u.id === id).name; suggestionsDiv.classList.add('hidden'); selectUnit(id); };
-
-const renderSearchResults = (res) => {
-    resetTheme();
-    contentDiv.innerHTML = res.length === 0 ? `<div style="padding:40px; text-align:center; color:var(--accent-hazard);">[!] NO_MATCHING_NODES</div>` : 
-    `<ul class="list-menu vertical">` + res.map(u => `<li class="menu-card" onclick="selectUnit('${u.id}')"><h2>${u.name}</h2><p>LOC: ${u.faction}</p></li>`).join('') + `</ul>`;
-};
-
-window.goHome = () => renderHome();
-window.selectSuperFaction = (sf) => { viewHistory.push('factions'); renderFactions(sf); };
-window.selectFaction = (f) => { viewHistory.push('subfactions'); renderSubfactions(f); };
-window.selectUnit = (id) => { viewHistory.push('card'); suggestionsDiv.classList.add('hidden'); renderCard(id); };
-window.switchTab = (id, btn) => {
-    document.querySelectorAll('.tab-content').forEach(c => c.classList.add('hidden'));
-    document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
-    document.getElementById('tab-' + id).classList.remove('hidden');
-    btn.classList.add('active');
-};
+// --- 8. INIT & UTILS ---
 window.updateWounds = (id, amt) => {
     const u = db.find(unit => unit.id === id);
     if (!u) return;
@@ -420,16 +421,46 @@ window.updateWounds = (id, amt) => {
     saveToDisk(true);
 };
 
-if (backBtn) {
-    backBtn.addEventListener('click', () => {
-        if (viewHistory.length <= 1) return;
-        viewHistory.pop();
-        const p = viewHistory[viewHistory.length - 1];
-        if (p === 'superfactions') renderHome();
-        else if (p === 'factions') renderFactions(currentSelection.superFaction);
-        else if (p === 'subfactions') renderSubfactions(currentSelection.faction);
-        else if (p === 'units') renderUnitList(currentSelection.faction, currentSelection.subfaction);
-        else if (p === 'roster') renderRoster();
-        else if (p === 'card') renderCard(currentSelection.unitId);
+window.goHome = () => renderHome();
+window.selectSuperFaction = (sf) => { viewHistory.push('factions'); renderFactions(sf); };
+window.selectFaction = (f) => { viewHistory.push('subfactions'); renderSubfactions(f); };
+window.switchTab = (id, btn) => {
+    document.querySelectorAll('.tab-content').forEach(c => c.classList.add('hidden'));
+    document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+    document.getElementById('tab-' + id).classList.remove('hidden');
+    btn.classList.add('active');
+};
+
+const updateRosterBadge = () => { if (rosterBtn) rosterBtn.innerHTML = roster.length > 0 ? `ROSTER [${roster.length}]` : `ROSTER`; };
+
+fetch('wehrselector_data.json').then(res => res.json()).then(data => {
+    db = data; loadFromDisk(); renderHome(); renderTacticalHUD(); showToast("SYSTEM_READY // UPLINK_STABLE", "info");
+});
+
+searchBar.addEventListener('input', (e) => {
+    const q = e.target.value.toLowerCase();
+    if (!q) { suggestionsDiv.classList.add('hidden'); renderHome(); return; }
+    const matches = db.filter(u => u.name.toLowerCase().includes(q));
+    suggestionsDiv.classList.toggle('hidden', matches.length === 0);
+    suggestionsDiv.innerHTML = matches.slice(0,5).map(m => `<div class="suggestion-item" onclick="selectUnit('${m.id}')"><span>${m.name}</span><span style="font-size:0.5rem; color:var(--text-dim);">${m.faction}</span></div>`).join('');
+});
+
+backBtn.addEventListener('click', () => {
+    if (viewHistory.length <= 1) return;
+    viewHistory.pop();
+    const p = viewHistory[viewHistory.length - 1];
+    if (p === 'superfactions') renderHome();
+    else if (p === 'factions') renderFactions(currentSelection.superFaction);
+    else if (p === 'subfactions') renderSubfactions(currentSelection.faction);
+    else if (p === 'units') renderUnitList(currentSelection.faction, currentSelection.subfaction);
+    else if (p === 'roster') renderRoster();
+    else if (p === 'card') renderCard(currentSelection.unitId);
+});
+
+// Added to handle the Roster toggle button in the header
+if (rosterBtn) {
+    rosterBtn.addEventListener('click', () => {
+        viewHistory.push('roster');
+        renderRoster();
     });
 }
