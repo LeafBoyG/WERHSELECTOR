@@ -839,43 +839,39 @@ h1 { font-size: 0.85rem; font-weight: 800; letter-spacing: 3px; text-transform: 
 }
 
 /* --- BREADCRUMB DROPDOWNS --- */
-.crumb-group {
-    display: inline-flex;
-    align-items: center;
-    position: relative;
-}
+/* base.css - Updated Dropdown Logic */
 
-.drp-arrow {
-    background: none;
-    border: none;
-    color: var(--faction-accent);
-    font-size: 0.5rem;
-    cursor: pointer;
-    padding: 0 5px;
-}
+/* Remove this: .crumb-group:hover .breadcrumb-dropdown { display: block; } */
 
-.drp-content {
-    display: none;
+.breadcrumb-dropdown {
+    display: none; /* Stay hidden by default */
     position: absolute;
     top: 100%;
     left: 0;
     background: var(--bg-surface);
     border: 1px solid var(--faction-accent);
-    z-index: 2000;
-    min-width: 150px;
-    box-shadow: 0 10px 30px rgba(0,0,0,0.8);
+    min-width: 160px;
+    z-index: 6000;
+    box-shadow: 0 10px 30px rgba(0,0,0,0.9);
 }
 
-.crumb-group:hover .drp-content { display: block; }
+/* Add this: Show class triggered by JS */
+.breadcrumb-dropdown.show {
+    display: block;
+}
 
-.drp-content div {
-    padding: 8px 12px;
-    font-size: 0.65rem;
+.drp-arrow {
+    font-size: 0.5rem;
+    color: var(--text-dim);
+    margin-left: 4px;
+    padding: 5px; /* Bigger hit area for the arrow */
     cursor: pointer;
-    border-bottom: 1px solid rgba(255,180,0,0.1);
+    transition: color 0.2s;
 }
 
-.drp-content div:hover { background: var(--faction-accent); color: #000; }
+.drp-arrow:hover {
+    color: var(--faction-accent);
+}
 
 /* --- HISTORY TAPE --- */
 #history-tape {
@@ -1180,4 +1176,435 @@ h1 { font-size: 0.85rem; font-weight: 800; letter-spacing: 3px; text-transform: 
 
 #app-content {
     padding-bottom: 80px; /* Room for the HUD */
+}
+
+/* --- style.css Breadcrumb Refinement --- */
+
+#breadcrumbs {
+    display: flex;
+    align-items: center;
+    background: #000;
+    padding: 12px 20px;
+    border-bottom: 1px solid rgba(255, 180, 0, 0.15);
+    overflow-x: auto;
+    scrollbar-width: none;
+    position: relative; /* Anchor for absolute elements */
+    z-index: 9000; /* High base for the whole bar */
+}
+
+#breadcrumbs::-webkit-scrollbar { display: none; }
+
+.crumb-group {
+    position: relative;
+    display: flex;
+    align-items: center;
+    white-space: nowrap;
+}
+
+.crumb {
+    font-size: 0.65rem;
+    font-weight: 800;
+    color: var(--text-dim);
+    text-transform: uppercase;
+    cursor: pointer;
+    transition: color 0.2s;
+}
+
+.crumb.active {
+    color: var(--faction-accent);
+    text-shadow: 0 0 8px var(--faction-glow);
+}
+
+.crumb:hover {
+    color: var(--text-high);
+}
+
+/* Arrow Toggle Style */
+.drp-arrow {
+    font-size: 0.5rem;
+    color: var(--faction-accent);
+    margin-left: 4px;
+    cursor: pointer;
+    padding: 4px 8px; /* Increased hit area */
+    display: flex;
+    align-items: center;
+    transition: transform 0.2s ease, color 0.2s;
+}
+
+.drp-arrow:hover {
+    color: var(--text-high);
+}
+
+/* Dropdown visibility logic - OVERLAY OVER ALL ELEMENTS */
+.breadcrumb-dropdown {
+    display: none;
+    position: absolute;
+    top: calc(100% + 5px); 
+    left: 0;
+    background: var(--bg-surface);
+    border: 1px solid var(--faction-accent);
+    min-width: 200px; /* Slightly wider for technical text */
+    
+    /* THE FIX: Force to the top of the stack */
+    z-index: 9999 !important; 
+    
+    /* Visual shadow to create depth over cards and background */
+    box-shadow: 0 15px 50px rgba(0, 0, 0, 0.95), 0 0 20px var(--faction-glow);
+    padding: 5px 0;
+}
+
+.breadcrumb-dropdown.show {
+    display: block;
+    animation: dropdownSlide 0.2s ease-out;
+}
+
+@keyframes dropdownSlide {
+    from { opacity: 0; transform: translateY(-5px); }
+    to { opacity: 1; transform: translateY(0); }
+}
+
+.drp-item {
+    padding: 12px 15px;
+    font-size: 0.6rem;
+    color: var(--text-high);
+    border-bottom: 1px solid rgba(255, 180, 0, 0.05);
+    cursor: pointer;
+    text-transform: uppercase;
+    transition: all 0.2s;
+}
+
+.drp-item:hover {
+    background: var(--faction-accent);
+    color: #000;
+    font-weight: 800;
+}
+
+/* Ensure Tactical HUD stays below the dropdowns */
+#tactical-hud {
+    z-index: 4000;
+}
+
+/* --- TACTICAL ADD/ENGAGE BUTTON --- */
+.add-unit-btn {
+    background: transparent;
+    border: 1px solid var(--faction-accent);
+    color: var(--faction-accent);
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 0.6rem;
+    font-weight: 800;
+    padding: 6px 14px;
+    cursor: pointer;
+    text-transform: uppercase;
+    transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+    clip-path: polygon(0 0, 100% 0, 100% 70%, 85% 100%, 0 100%);
+    letter-spacing: 1px;
+    white-space: nowrap;
+}
+
+/* Hover effect with glow */
+.add-unit-btn:hover {
+    background: rgba(255, 180, 0, 0.1);
+    box-shadow: 0 0 15px var(--faction-glow);
+    transform: translateY(-1px);
+}
+
+/* "ADDED" State - Swaps to Hazard Orange/Red */
+.add-unit-btn.added {
+    background: var(--accent-hazard);
+    border-color: var(--accent-hazard);
+    color: #000;
+    clip-path: polygon(15% 0, 100% 0, 100% 100%, 0 100%, 0 30%); /* Inverted clip */
+}
+
+.add-unit-btn.added:hover {
+    background: #ff6600;
+    filter: brightness(1.2);
+}
+
+/* Small version for Search Suggestions */
+.add-unit-btn.small {
+    padding: 2px 8px;
+    font-size: 0.55rem;
+    min-width: 30px;
+}
+
+/* Active/Click feedback */
+.add-unit-btn:active {
+    transform: scale(0.95);
+}
+
+.add-unit-btn.added {
+    animation: pulse-border 2s infinite;
+}
+
+@keyframes pulse-border {
+    0% { box-shadow: 0 0 0 0px rgba(255, 68, 0, 0.4); }
+    70% { box-shadow: 0 0 0 10px rgba(255, 68, 0, 0); }
+    100% { box-shadow: 0 0 0 0px rgba(255, 68, 0, 0); }
+}
+
+.roster-item {
+    flex-direction: row !important;
+    align-items: center;
+    justify-content: space-between;
+    padding: 12px 20px !important;
+}
+
+.faction-tag {
+    font-size: 0.5rem;
+    color: var(--faction-accent);
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    display: block;
+    margin-bottom: 2px;
+}
+
+.empty-state-alert {
+    padding: 60px 20px;
+    text-align: center;
+    color: var(--text-dim);
+    font-size: 0.7rem;
+    border: 1px dashed var(--border-ui);
+    margin: 20px;
+    text-transform: uppercase;
+    letter-spacing: 2px;
+}
+
+/* --- ARMY ROSTER SPECIFIC --- */
+.roster-item {
+    position: relative;
+    padding: 12px 15px !important;
+    margin-bottom: 8px !important;
+    background: linear-gradient(90deg, var(--bg-surface) 0%, #000 100%) !important;
+}
+
+.warlord-highlight {
+    border: 1px solid var(--faction-accent) !important;
+    border-left: 6px solid var(--faction-accent) !important;
+    box-shadow: inset 0 0 10px var(--faction-glow);
+}
+
+.roster-mini-stats {
+    font-size: 0.55rem;
+    color: var(--text-dim);
+    font-weight: 700;
+    margin-top: 4px;
+    letter-spacing: 1px;
+}
+
+.validation-error {
+    color: var(--accent-hazard);
+    font-size: 0.5rem;
+    font-weight: 800;
+    margin-top: 5px;
+    animation: blink 1s infinite;
+}
+
+.army-header-card {
+    background: rgba(0, 20, 0, 0.4);
+    border: 1px solid var(--faction-accent);
+    padding: 15px;
+    margin-bottom: 20px;
+}
+
+.army-meta {
+    display: flex;
+    justify-content: space-between;
+    font-size: 0.6rem;
+    margin-top: 10px;
+    letter-spacing: 1px;
+}
+
+.deployment-zone {
+    margin-bottom: 25px;
+}
+
+.zone-header {
+    font-size: 0.65rem;
+    color: var(--text-dim);
+    border-bottom: 1px solid var(--border-ui);
+    padding-bottom: 5px;
+    margin-bottom: 10px;
+}
+
+.warlord-card {
+    border: 1px solid var(--faction-accent) !important;
+    background: linear-gradient(90deg, rgba(255,180,0,0.1) 0%, transparent 100%) !important;
+}
+
+.zone-selector {
+    background: #000;
+    color: var(--faction-accent);
+    border: 1px solid var(--border-ui);
+    font-size: 0.5rem;
+    padding: 2px;
+    margin-right: 10px;
+    cursor: pointer;
+}
+
+.text-hazard { color: var(--accent-hazard); }
+/* Persistent Top Nav */
+#tactical-nav {
+    background: rgba(0, 0, 0, 0.9);
+    border-bottom: 1px solid var(--faction-accent);
+    padding: 8px;
+    position: sticky;
+    top: 0;
+    z-index: 1000;
+}
+
+.nav-group {
+    display: flex;
+    justify-content: space-around;
+}
+
+.nav-btn {
+    background: none;
+    border: 1px solid transparent;
+    color: var(--text-dim);
+    font-size: 0.6rem;
+    font-weight: 800;
+    padding: 5px 10px;
+    letter-spacing: 1px;
+}
+
+.nav-btn:hover {
+    color: var(--faction-accent);
+    border-color: var(--faction-accent);
+    clip-path: polygon(10% 0, 100% 0, 90% 100%, 0 100%);
+}
+
+/* Horizontal Filter Bar */
+.filter-scroller {
+    display: flex;
+    gap: 8px;
+    overflow-x: auto;
+    padding: 10px 0;
+    margin-bottom: 10px;
+    scrollbar-width: none;
+}
+
+.filter-chip {
+    background: var(--bg-surface);
+    border: 1px solid var(--border-ui);
+    color: var(--text-dim);
+    padding: 4px 12px;
+    border-radius: 20px;
+    font-size: 0.55rem;
+    white-space: nowrap;
+    cursor: pointer;
+}
+
+.filter-chip.active {
+    background: var(--faction-accent);
+    color: #000;
+    border-color: var(--faction-accent);
+    font-weight: 800;
+}
+
+
+
+/* Horizontal Class Scroller */
+.class-filter-bar {
+    display: flex;
+    overflow-x: auto;
+    gap: 8px;
+    padding: 10px 0;
+    scrollbar-width: none; /* Hide scrollbar for clean look */
+}
+
+.filter-chip {
+    white-space: nowrap;
+    background: var(--bg-surface);
+    border: 1px solid var(--border-ui);
+    color: var(--text-dim);
+    padding: 4px 12px;
+    border-radius: 12px;
+    font-size: 0.55rem;
+}
+
+/* Persistent Navigation Bar */
+#tactical-nav {
+    background: rgba(0, 0, 0, 0.9);
+    border-bottom: 2px solid var(--faction-accent);
+    padding: 8px;
+    position: sticky;
+    top: 0;
+    z-index: 1000;
+}
+
+/* Horizontal Class Filters */
+.filter-scroller {
+    display: flex;
+    gap: 10px;
+    overflow-x: auto;
+    padding: 10px 0;
+    margin-bottom: 10px;
+    scrollbar-width: none; /* Hide scrollbar for clean look */
+}
+
+.filter-chip {
+    background: var(--bg-surface);
+    border: 1px solid var(--border-ui);
+    color: var(--text-dim);
+    padding: 4px 14px;
+    border-radius: 20px;
+    font-size: 0.6rem;
+    font-weight: 800;
+    white-space: nowrap;
+    cursor: pointer;
+    transition: all 0.2s ease;
+}
+
+.filter-chip.active {
+    background: var(--faction-accent);
+    color: #000;
+    border-color: var(--faction-accent);
+    box-shadow: 0 0 10px var(--faction-glow);
+}
+
+header#main-header {
+    background: rgba(10, 12, 14, 0.95);
+    backdrop-filter: blur(12px);
+    padding: 18px 20px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    border-bottom: 2px solid var(--faction-accent);
+    /* High priority sticky */
+    position: sticky; 
+    top: 0; 
+    z-index: 1000;
+}
+
+#tactical-nav {
+    background: rgba(0, 0, 0, 0.9);
+    border-bottom: 1px solid var(--faction-accent);
+    padding: 8px;
+    /* Sticks below the header (adjust 'top' to match header height) */
+    position: sticky; 
+    top: 58px; /* Assuming header height + padding is 58px */
+    z-index: 999;
+}
+
+.nav-group {
+    display: flex;
+    justify-content: space-around;
+}
+
+.nav-btn {
+    background: none;
+    border: 1px solid transparent;
+    color: var(--text-dim);
+    font-size: 0.6rem;
+    font-weight: 800;
+    padding: 5px 10px;
+    letter-spacing: 1px;
+    cursor: pointer;
+}
+
+.nav-btn:hover {
+    color: var(--faction-accent);
+    border-color: var(--faction-accent);
+    clip-path: polygon(10% 0, 100% 0, 90% 100%, 0 100%);
 }

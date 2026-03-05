@@ -1,0 +1,169 @@
+/* --- WEHRSELECTOR: HUD & SYSTEM FEEDBACK --- */
+/* File: hud.css */
+
+/* --- TACTICAL STATUS BAR (HUD) --- */
+#tactical-hud {
+    position: fixed;
+    bottom: 0;
+    left: 0;
+    width: 100%;
+    z-index: 9999;
+    background: rgba(5, 5, 5, 0.95);
+    backdrop-filter: blur(10px);
+    border-top: 1px solid var(--faction-accent);
+    padding: 10px 15px;
+    box-shadow: 0 -5px 15px rgba(0,0,0,0.5);
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.hud-content {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    width: 100%;
+    max-width: 500px; /* Matches app-container */
+    margin: 0 auto;
+}
+
+.hud-history {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    overflow-x: auto;
+    scrollbar-width: none;
+}
+
+.hud-history::-webkit-scrollbar { display: none; }
+
+.history-chip {
+    background: var(--bg-elevated);
+    border: 1px solid var(--border-ui);
+    padding: 4px 10px;
+    font-size: 0.55rem;
+    font-weight: 800;
+    text-transform: uppercase;
+    white-space: nowrap;
+    cursor: pointer;
+    transition: all 0.2s;
+}
+
+.history-chip:hover {
+    border-color: var(--faction-accent);
+    color: var(--faction-accent);
+}
+
+.pts-total {
+    font-size: 0.85rem;
+    font-weight: 900;
+    color: var(--accent-hazard);
+    text-shadow: 0 0 10px var(--faction-glow);
+    white-space: nowrap;
+    margin-left: 15px;
+}
+
+/* --- SEARCH SUGGESTIONS --- */
+#search-suggestions {
+    position: absolute;
+    top: 100%;
+    left: 20px;
+    right: 20px;
+    background: var(--bg-surface);
+    border: 1px solid var(--faction-accent);
+    border-top: none;
+    z-index: 2000;
+    box-shadow: 0 10px 20px rgba(0,0,0,0.8);
+}
+
+.suggestion-item {
+    padding: 10px 15px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    cursor: pointer;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+}
+
+.suggestion-item:hover {
+    background: var(--bg-elevated);
+}
+
+.add-unit-btn {
+    background: transparent;
+    border: 1px solid var(--faction-accent);
+    color: var(--faction-accent);
+    font-size: 0.55rem;
+    font-weight: 800;
+    padding: 4px 8px;
+    cursor: pointer;
+    text-transform: uppercase;
+}
+
+.add-unit-btn.added {
+    background: var(--faction-accent);
+    color: #000;
+}
+
+/* --- TACTICAL TOASTS --- */
+#toast-container {
+    position: fixed;
+    bottom: 70px; /* Sits above the HUD */
+    left: 50%;
+    transform: translateX(-50%);
+    z-index: 9999;
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    pointer-events: none;
+}
+
+.toast-alert {
+    background: rgba(10, 12, 14, 0.9);
+    border: 1px solid var(--faction-accent);
+    color: var(--faction-accent);
+    padding: 12px 20px;
+    font-size: 0.7rem;
+    font-weight: 800;
+    letter-spacing: 1px;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    box-shadow: 0 0 20px rgba(0, 0, 0, 0.5), inset 0 0 10px var(--faction-glow);
+    animation: slideUp 0.3s ease-out;
+    min-width: 280px;
+}
+
+.toast-alert.hazard {
+    border-color: #ef4444;
+    color: #ef4444;
+}
+
+.toast-icon {
+    animation: blink 0.5s infinite;
+}
+
+@keyframes slideUp {
+    from { transform: translateY(50px); opacity: 0; }
+    to { transform: translateY(0); opacity: 1; }
+}
+
+@keyframes blink {
+    0%, 100% { opacity: 1; }
+    50% { opacity: 0.3; }
+}
+
+.fade-out {
+    opacity: 0;
+    transform: translateY(-20px);
+    transition: all 0.5s ease;
+}
+
+/* --- ERROR MESSAGES --- */
+.validation-error {
+    font-size: 0.55rem;
+    color: #ef4444;
+    font-weight: 800;
+    text-transform: uppercase;
+    animation: blink 1s infinite;
+}
