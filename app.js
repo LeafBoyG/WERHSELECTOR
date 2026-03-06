@@ -1,17 +1,9 @@
 /**
- * WEHRSELECTOR: COMMAND UPLINK V4.6
- * RESTORED DETAIL + ARMY CREATOR ENGINE
+ * WEHRSELECTOR: COMMAND UPLINK V4.7
+ * CORE COORDINATOR: DATA, SEARCH, & STATE
  */
 
-// --- 1. STATE & DATA ---
-let db = [];
-let viewHistory = ['superfactions'];
-let currentSelection = { superFaction: null, faction: null, subfaction: null, unitId: null };
-let roster = [];
-let unitWounds = {};
-let lockedFaction = null; 
-let warlordId = null;    
-
+// --- 1. CONFIGURATION & STATIC DATA ---
 const superFactions = {
     "Imperium": ["Adepta Sororitas", "Adeptus Custodes", "Adeptus Mechanicus", "Adeptus Titanicus", "Astra Militarum", "Grey Knights", "Imperial Agents", "Imperial Knights", "Space Marines"],
     "Chaos": ["Chaos Daemons", "Chaos Knights", "Chaos Space Marines", "Death Guard", "Emperor’s Children", "Thousand Sons", "World Eaters"],
@@ -36,6 +28,11 @@ const factionColors = {
     "Space Marines": "#0077ff", "T’au Empire": "#ffcc33", "Tyranids": "#aa00ff", "World Eaters": "#ff0000"
 };
 
+// --- 2. GLOBAL STATE ---
+window.db = [];
+window.viewHistory = ['superfactions'];
+window.currentSelection = { superFaction: null, faction: null, subfaction: null, unitId: null };
+
 const UI = {
     content: document.getElementById('app-content'),
     backBtn: document.getElementById('back-btn'),
@@ -45,11 +42,13 @@ const UI = {
     rosterBtn: document.getElementById('roster-toggle')
 };
 
-// --- 2. THEME & NAVIGATION ---
-const setTheme = (c) => document.documentElement.style.setProperty('--faction-accent', c || 'var(--accent-amber)');
-const resetTheme = () => document.documentElement.style.setProperty('--faction-accent', "var(--accent-amber)");
+// --- 3. VIEW & THEME COORDINATION ---
 
-const updateView = (view) => {
+window.setTheme = (color) => {
+    document.documentElement.style.setProperty('--faction-accent', color || 'var(--accent-amber)');
+};
+
+window.updateView = (view) => {
     UI.content.classList.remove('slide-in');
     void UI.content.offsetWidth; 
     UI.content.classList.add('slide-in');
@@ -60,220 +59,172 @@ const updateView = (view) => {
         viewHistory.push(view);
         history.pushState({view, selection: {...currentSelection}}, "");
     }
+    
+    if (window.renderBreadcrumbs) window.renderBreadcrumbs(view);
 };
 
 window.goBack = () => {
     if (viewHistory.length <= 1) return;
     viewHistory.pop();
     const prev = viewHistory[viewHistory.length - 1];
+    
     if (prev === 'superfactions') renderHome();
     else if (prev === 'factions') renderFactions(currentSelection.superFaction);
     else if (prev === 'subfactions') renderSubfactions(currentSelection.faction);
     else if (prev === 'units') renderUnitList(currentSelection.faction, currentSelection.subfaction);
-    else if (prev === 'card') renderCard(currentSelection.unitId);
-    else if (prev === 'roster') renderRoster();
+    else if (prev === 'card') window.renderCard(currentSelection.unitId);
+    else if (prev === 'roster') window.renderRoster();
 };
 
-// --- 3. RENDERERS ---
+// --- 4. CORE NAVIGATION RENDERERS ---
+
 const renderHome = () => {
     currentSelection = { superFaction: null, faction: null, subfaction: null, unitId: null };
-    resetTheme();
+    setTheme(null);
     updateView('superfactions');
     const sfLogos = { "Imperium": "IMPERIUM.svg", "Chaos": "CHAOS.svg", "Xenos": "XENOS.svg" };
-    UI.content.innerHTML = Object.keys(superFactions).map(sf => `
-        <div class="menu-card zoom-effect" onclick="selectSuperFaction('${sf}')">
-            <div class="sf-icon-container"><img src="assets/logos/${sfLogos[sf]}" class="sf-large-logo"></div>
-            <h2>${sf}</h2>
-            <p>SYSTEM_OVERRIDE: ${superFactions[sf].length} ACTIVE_NODES</p>
-        </div>`).join('');
+    
+    UI.content.innerHTML = `
+        <div class="list-menu vertical">
+            ${Object.keys(superFactions).map(sf => `
+                <div class="menu-card zoom-effect" onclick="selectSuperFaction('${sf}')">
+                    <div class="sf-icon-container">
+                        <img src="assets/logos/${sfLogos[sf]}" class="sf-large-logo" style="filter: brightness(0) invert(1);">
+                    </div>
+                    <h2>${sf}</h2>
+                    <p>SYSTEM_OVERRIDE: ${superFactions[sf].length} ACTIVE_NODES</p>
+                </div>
+            `).join('')}
+        </div>`;
 };
+
+window.selectSuperFaction = (sf) => renderFactions(sf);
 
 const renderFactions = (sf) => {
     currentSelection.superFaction = sf;
-    resetTheme();
+    setTheme(null);
     updateView('factions');
-    UI.content.innerHTML = superFactions[sf].map(f => `
-        <div class="menu-card zoom-effect" style="border-left: 4px solid ${factionColors[f] || 'var(--border-ui)'}" onclick="selectFaction('${f}')">
-            <div class="faction-row" style="display: flex; align-items: center; gap: 15px;">
-                <img src="assets/logos/${factionLogos[f] || 'generic.svg'}" class="faction-logo" style="width:40px; filter: brightness(0) invert(1);">
-                <h2>${f}</h2>
-            </div>
-        </div>`).join('');
+    
+    UI.content.innerHTML = `
+        <div class="list-menu vertical">
+            ${superFactions[sf].map(f => `
+                <div class="menu-card zoom-effect" 
+                     style="border-left: 4px solid ${factionColors[f] || 'var(--border-ui)'}" 
+                     onclick="selectFaction('${f}')">
+                    <div class="faction-row" style="display: flex; align-items: center; gap: 15px;">
+                        <img src="assets/logos/${factionLogos[f] || 'generic.svg'}" 
+                             class="faction-logo" 
+                             style="width:40px; filter: brightness(0) invert(1);">
+                        <h2>${f}</h2>
+                    </div>
+                </div>
+            `).join('')}
+        </div>`;
 };
+
+window.selectFaction = (f) => renderSubfactions(f);
 
 const renderSubfactions = (f) => {
     currentSelection.faction = f;
     setTheme(factionColors[f]);
     updateView('subfactions');
+    
     const subs = [...new Set(db.filter(u => u.faction === f).map(u => u.subfaction))];
-    UI.content.innerHTML = subs.map(s => `
-        <div class="menu-card zoom-effect" onclick="renderUnitList('${f}', '${s}')">
-            <h2>${s || 'GENERAL_UNITS'}</h2>
-        </div>`).join('');
-};
-
-const renderUnitList = (f, s) => {
-    currentSelection.subfaction = s;
-    updateView('units');
-    const units = db.filter(u => u.faction === f && u.subfaction === s).sort((a,b) => a.name.localeCompare(b.name));
-    UI.content.innerHTML = `<ul class="list-menu vertical">` + 
-        units.map(u => `
-            <li class="menu-card unit-list-item" onclick="selectUnit('${u.id}')">
-                <div style="flex-grow:1;"><h2>${u.name}</h2></div>
-                <button class="add-unit-btn ${roster.includes(u.id) ? 'added' : ''}" 
-                        onclick="event.stopPropagation(); toggleRoster('${u.id}')">
-                    ${roster.includes(u.id) ? 'REMOVE' : 'ADD'}
-                </button>
-            </li>`).join('') + `</ul>`;
-};
-
-const renderCard = (unitId) => {
-    const unit = db.find(u => u.id === unitId);
-    if (!unit) return;
-    currentSelection.unitId = unitId;
-    setTheme(factionColors[unit.faction]);
-    updateView('card');
-
-    if (unitWounds[unit.id] === undefined) unitWounds[unit.id] = parseInt(unit.w);
-
+    
     UI.content.innerHTML = `
-        <div class="unit-card">
-            <div class="unit-header">
-                <div style="display: flex; align-items: center; gap: 10px;">
-                    <img src="assets/logos/${factionLogos[unit.faction] || 'generic.svg'}" class="faction-logo" style="width:22px; filter: brightness(0) invert(1);">
-                    <span class="unit-name">${unit.name}</span>
+        <div class="list-menu vertical">
+            ${subs.map(s => `
+                <div class="menu-card zoom-effect" onclick="renderUnitList('${f}', '${s}')">
+                    <h2>${s || 'GENERAL_UNITS'}</h2>
                 </div>
-                <button class="add-unit-btn ${roster.includes(unit.id) ? 'added' : ''}" onclick="toggleRoster('${unit.id}')">
-                    ${roster.includes(unit.id) ? '✕ DISENGAGE' : '📌 ENGAGE'}
-                </button>
-            </div>
-            <div style="padding: 0 15px 10px;">
-                <button class="action-btn ${warlordId === unit.id ? 'active' : ''}" onclick="setWarlord('${unit.id}')" style="width: 100%; font-size: 0.6rem;">
-                    ${warlordId === unit.id ? '★ COMMAND_LINK_ACTIVE' : '☆ DESIGNATE_WARLORD'}
-                </button>
-            </div>
-            <div class="stat-bar">
-                <div class="stat-item"><span class="stat-label">M</span><span class="stat-val">${unit.m}</span></div>
-                <div class="stat-item"><span class="stat-label">T</span><span class="stat-val">${unit.t}</span></div>
-                <div class="stat-item"><span class="stat-label">SV</span><span class="stat-val">${unit.sv}</span></div>
-                <div class="stat-item"><span class="stat-label">W</span><span class="stat-val">${unit.w}</span></div>
-                <div class="stat-item"><span class="stat-label">LD</span><span class="stat-val">${unit.ld}</span></div>
-                <div class="stat-item"><span class="stat-label">OC</span><span class="stat-val">${unit.oc}</span></div>
-            </div>
-            <div class="tab-bar">
-                <button class="tab-btn active" onclick="switchTab('weapons', this)">ARMAMENT</button>
-                <button class="tab-btn" onclick="switchTab('abilities', this)">INTEL</button>
-            </div>
-            <div id="tab-weapons" class="tab-content">
-                <div class="weapon-row header"><span>WEAPON</span><span>R</span><span>A</span><span>BS</span><span>S</span><span>AP</span><span>D</span></div>
-                ${unit.weapons.map(w => `
-                    <div class="weapon-card-tactical">
-                        <div class="weapon-row"><span>${w.name}</span><span>${w.range}</span><span>${w.a}</span><span>${w.ws_bs}+</span><span>${w.s}</span><span>${w.ap}</span><span>${w.d}</span></div>
-                        ${w.keywords ? `<div class="weapon-keywords">// ${w.keywords}</div>` : ''}
-                    </div>`).join('')}
-            </div>
-            <div id="tab-abilities" class="tab-content hidden">
-                ${unit.abilities.map(a => `<div class="ability-card"><div class="ability-name">${a.name}</div><div class="ability-text">${a.text}</div></div>`).join('')}
-            </div>
-            <div class="wound-tracker">
-                <button class="counter-btn" onclick="updateWounds('${unit.id}', -1)">−</button>
-                <div class="wound-display"><span id="wound-display-text">${unitWounds[unit.id]}</span><span style="font-size:0.6rem;">/ ${unit.w} HP</span></div>
-                <button class="counter-btn" onclick="updateWounds('${unit.id}', 1)">+</button>
-            </div>
+            `).join('')}
         </div>`;
 };
 
-// --- 4. SEARCH & ROSTER LOGIC ---
+window.renderUnitList = (f, s) => {
+    currentSelection.subfaction = s;
+    updateView('units');
+    const units = db.filter(u => u.faction === f && u.subfaction === s).sort((a,b) => a.name.localeCompare(b.name));
+    
+    const roles = ["ALL", "CHARACTER", "BATTLELINE", "VEHICLE", "INFANTRY"];
+    
+    UI.content.innerHTML = `
+        <div class="filter-scroller" style="display:flex; overflow-x:auto; gap:8px; margin-bottom:15px;">
+            ${roles.map(r => `<button class="filter-chip" onclick="filterList('${r}', this)">${r}</button>`).join('')}
+        </div>
+        <ul class="list-menu vertical">
+            ${units.map(u => {
+                const isAdded = window.roster.some(item => item.unitId === u.id);
+                return `
+                <li class="menu-card unit-list-item" data-id="${u.id}" onclick="window.selectUnit('${u.id}')">
+                    <div style="flex-grow:1;"><h2>${u.name}</h2></div>
+                    <button class="add-unit-btn ${isAdded ? 'added' : ''}" 
+                            onclick="event.stopPropagation(); window.toggleRoster('${u.id}', event)">
+                        ADD
+                    </button>
+                </li>`;
+            }).join('')}
+        </ul>`;
+};
+
+window.filterList = (keyword, btn) => {
+    document.querySelectorAll('.filter-chip').forEach(c => {
+        c.style.borderColor = 'var(--border-ui)';
+        c.style.color = 'var(--text-dim)';
+    });
+    btn.style.borderColor = 'var(--faction-accent)';
+    btn.style.color = 'var(--faction-accent)';
+    
+    document.querySelectorAll('.unit-list-item').forEach(item => {
+        const u = db.find(unit => unit.id === item.getAttribute('data-id'));
+        const matches = keyword === 'ALL' || (u.keywords && u.keywords.includes(keyword));
+        item.style.display = matches ? 'flex' : 'none';
+    });
+};
+
+// --- 5. SEARCH & UI ACTIONS ---
+
 UI.searchBar.addEventListener('input', (e) => {
     const q = e.target.value.toLowerCase();
     if (!q) { UI.suggestions.classList.add('hidden'); return; }
     const matches = db.filter(u => u.name.toLowerCase().includes(q)).slice(0, 6);
     UI.suggestions.classList.toggle('hidden', matches.length === 0);
-    UI.suggestions.innerHTML = matches.map(m => `
-        <div class="suggestion-item" onclick="selectUnit('${m.id}')">
-            <div style="display:flex; flex-direction:column;"><span>${m.name}</span><span style="font-size:0.5rem; color:var(--text-dim);">${m.faction}</span></div>
-            <button class="add-unit-btn small ${roster.includes(m.id) ? 'added' : ''}" 
-                    onclick="event.stopPropagation(); toggleRoster('${m.id}')">
-                ${roster.includes(m.id) ? '−' : '+'}
+    UI.suggestions.innerHTML = matches.map(m => {
+        const isAdded = window.roster.some(item => item.unitId === m.id);
+        return `
+        <div class="suggestion-item" onclick="window.selectUnit('${m.id}')">
+            <div style="display:flex; flex-direction:column;">
+                <span>${m.name}</span>
+                <span style="font-size:0.5rem; color:var(--text-dim);">${m.faction}</span>
+            </div>
+            <button class="add-unit-btn small ${isAdded ? 'added' : ''}" 
+                    onclick="event.stopPropagation(); window.toggleRoster('${m.id}', event)">
+                +
             </button>
-        </div>`).join('');
+        </div>`;
+    }).join('');
 });
 
-window.toggleRoster = (id) => {
-    const unit = db.find(u => u.id === id);
-    if (!unit) return;
-    const index = roster.indexOf(id);
-    if (index === -1) {
-        if (lockedFaction && unit.faction !== lockedFaction) { alert(`LOCKED TO ${lockedFaction.toUpperCase()}`); return; }
-        roster.push(id);
-        lockedFaction = unit.faction;
-    } else {
-        roster.splice(index, 1);
-        if (roster.length === 0) { lockedFaction = null; warlordId = null; }
-    }
-    const cur = viewHistory[viewHistory.length - 1];
-    if (cur === 'units') renderUnitList(currentSelection.faction, currentSelection.subfaction);
-    else if (cur === 'card') renderCard(id);
-    else if (cur === 'roster') renderRoster();
-    updateRosterBadge();
-    saveToDisk();
+window.selectUnit = (id) => { 
+    currentSelection.unitId = id; 
+    UI.suggestions.classList.add('hidden'); 
+    UI.searchBar.value = ""; 
+    window.renderCard(id); 
 };
 
-const renderRoster = () => {
-    updateView('roster');
-    resetTheme();
-    UI.content.innerHTML = `<h1 style="color:var(--accent-hazard); margin-bottom:15px;">ACTIVE_BATTLEGROUP</h1>` + 
-        roster.map(id => {
-            const u = db.find(unit => unit.id === id);
-            return `<div class="menu-card" style="display:flex; justify-content:space-between; align-items:center;">
-                <div onclick="selectUnit('${u.id}')">
-                    <h2 style="font-size:0.9rem;">${u.name}</h2>
-                    <p style="font-size:0.5rem; color:var(--faction-accent);">${u.faction}</p>
-                </div>
-                <button onclick="toggleRoster('${u.id}')" style="background:none; border:none; color:#ef4444; font-size:1.2rem; cursor:pointer;">✕</button>
-            </div>`;
-        }).join('') + (roster.length > 0 ? `<button class="action-btn danger-btn" onclick="clearRoster()" style="width:100%; margin-top:20px;">TERMINATE_ALL_LINKS</button>` : '');
-};
-
-window.clearRoster = () => { if(confirm("DISENGAGE ALL?")) { roster = []; lockedFaction = null; warlordId = null; renderRoster(); updateRosterBadge(); saveToDisk(); } };
-window.setWarlord = (id) => { warlordId = id; renderCard(id); saveToDisk(); };
-window.selectUnit = (id) => { currentSelection.unitId = id; UI.suggestions.classList.add('hidden'); UI.searchBar.value = ""; renderCard(id); };
-window.selectSuperFaction = (sf) => renderFactions(sf);
-window.selectFaction = (f) => renderSubfactions(f);
 window.goHome = () => renderHome();
 
-window.switchTab = (id, btn) => {
-    document.querySelectorAll('.tab-content').forEach(c => c.classList.add('hidden'));
-    document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
-    document.getElementById('tab-' + id).classList.remove('hidden');
-    btn.classList.add('active');
-};
+// --- 6. INITIALIZATION ---
 
-const updateWounds = (id, amt) => {
-    const u = db.find(unit => unit.id === id);
-    unitWounds[id] = Math.max(0, Math.min(parseInt(u.w), (unitWounds[id] || parseInt(u.w)) + amt));
-    const disp = document.getElementById('wound-display-text');
-    if (disp) disp.innerText = unitWounds[id];
-    saveToDisk();
-};
+fetch('wehrselector_data.json')
+    .then(res => res.json())
+    .then(data => { 
+        window.db = data; 
+        if (window.loadFromDisk) window.loadFromDisk(); 
+        if (window.renderTacticalNav) window.renderTacticalNav(); 
+        renderHome(); 
+    });
 
-const saveToDisk = () => localStorage.setItem('arkRaider_session', JSON.stringify({roster, lockedFaction, warlordId, unitWounds}));
-const loadFromDisk = () => {
-    const s = localStorage.getItem('arkRaider_session');
-    if (s) { 
-        const d = JSON.parse(s); 
-        roster = d.roster || []; 
-        lockedFaction = d.lockedFaction || null; 
-        warlordId = d.warlordId || null; 
-        unitWounds = d.unitWounds || {}; 
-        updateRosterBadge(); 
-    }
-};
-
-const updateRosterBadge = () => { if (UI.rosterBtn) UI.rosterBtn.innerHTML = roster.length > 0 ? `ROSTER [${roster.length}]` : `ROSTER`; };
-
-// --- 5. INITIALIZATION ---
-fetch('wehrselector_data.json').then(res => res.json()).then(data => { db = data; loadFromDisk(); renderHome(); });
 UI.backBtn.addEventListener('click', goBack);
-UI.rosterBtn.addEventListener('click', renderRoster);
+UI.rosterBtn.addEventListener('click', () => { if(window.renderRoster) window.renderRoster(); });
 window.onpopstate = (e) => { if (e.state) { currentSelection = e.state.selection; viewHistory.pop(); goBack(); } };
