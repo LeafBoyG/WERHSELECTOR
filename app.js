@@ -1,6 +1,6 @@
 /**
- * WEHRSELECTOR: COMMAND UPLINK V4.7
- * CORE COORDINATOR: DATA, SEARCH, & STATE
+ * WEHRSELECTOR: COMMAND UPLINK V4.9
+ * CORE COORDINATOR: MULTI-TEAM DATA, SEARCH, & STATE
  */
 
 // --- 1. CONFIGURATION & STATIC DATA ---
@@ -28,10 +28,18 @@ const factionColors = {
     "Space Marines": "#0077ff", "T’au Empire": "#ffcc33", "Tyranids": "#aa00ff", "World Eaters": "#ff0000"
 };
 
+// Explicit Global Declaration to stop SyntaxErrors
+window.teamAccents = {
+    1: "#ffb400", // Team 1: Amber
+    2: "#00ff00", // Team 2: Toxic Green
+    3: "#00e5ff"  // Team 3: Pulse Blue
+};
+
 // --- 2. GLOBAL STATE ---
 window.db = [];
 window.viewHistory = ['superfactions'];
 window.currentSelection = { superFaction: null, faction: null, subfaction: null, unitId: null };
+window.currentTeamContext = 1;
 
 const UI = {
     content: document.getElementById('app-content'),
@@ -49,72 +57,72 @@ window.setTheme = (color) => {
 };
 
 window.updateView = (view) => {
+    if (!UI.content) return;
     UI.content.classList.remove('slide-in');
     void UI.content.offsetWidth; 
     UI.content.classList.add('slide-in');
     
     if (UI.backBtn) UI.backBtn.classList.toggle('hidden', view === 'superfactions');
     
-    if (viewHistory[viewHistory.length - 1] !== view) {
-        viewHistory.push(view);
-        history.pushState({view, selection: {...currentSelection}}, "");
+    if (window.viewHistory[window.viewHistory.length - 1] !== view) {
+        window.viewHistory.push(view);
+        history.pushState({view, selection: {...window.currentSelection}}, "");
     }
     
     if (window.renderBreadcrumbs) window.renderBreadcrumbs(view);
 };
 
 window.goBack = () => {
-    if (viewHistory.length <= 1) return;
-    viewHistory.pop();
-    const prev = viewHistory[viewHistory.length - 1];
+    if (window.viewHistory.length <= 1) return;
+    window.viewHistory.pop();
+    const prev = window.viewHistory[window.viewHistory.length - 1];
     
-    if (prev === 'superfactions') renderHome();
-    else if (prev === 'factions') renderFactions(currentSelection.superFaction);
-    else if (prev === 'subfactions') renderSubfactions(currentSelection.faction);
-    else if (prev === 'units') renderUnitList(currentSelection.faction, currentSelection.subfaction);
-    else if (prev === 'card') window.renderCard(currentSelection.unitId);
+    if (prev === 'superfactions') window.renderHome();
+    else if (prev === 'factions') window.renderFactions(window.currentSelection.superFaction);
+    else if (prev === 'subfactions') window.renderSubfactions(window.currentSelection.faction);
+    else if (prev === 'units') window.renderUnitList(window.currentSelection.faction, window.currentSelection.subfaction);
+    else if (prev === 'card') window.renderCard(window.currentSelection.unitId);
     else if (prev === 'roster') window.renderRoster();
 };
 
 // --- 4. CORE NAVIGATION RENDERERS ---
 
-const renderHome = () => {
-    currentSelection = { superFaction: null, faction: null, subfaction: null, unitId: null };
-    setTheme(null);
-    updateView('superfactions');
+window.renderHome = () => {
+    window.currentSelection = { superFaction: null, faction: null, subfaction: null, unitId: null };
+    window.setTheme(null);
+    window.updateView('superfactions');
     const sfLogos = { "Imperium": "IMPERIUM.svg", "Chaos": "CHAOS.svg", "Xenos": "XENOS.svg" };
     
     UI.content.innerHTML = `
         <div class="list-menu vertical">
             ${Object.keys(superFactions).map(sf => `
-                <div class="menu-card zoom-effect" onclick="selectSuperFaction('${sf}')">
+                <div class="menu-card zoom-effect" onclick="window.selectSuperFaction('${sf}')">
                     <div class="sf-icon-container">
                         <img src="assets/logos/${sfLogos[sf]}" class="sf-large-logo" style="filter: brightness(0) invert(1);">
                     </div>
                     <h2>${sf}</h2>
-                    <p>SYSTEM_OVERRIDE: ${superFactions[sf].length} ACTIVE_NODES</p>
+                    <p>ALLIANCE_STATUS: ${superFactions[sf].length} ACTIVE_NODES</p>
                 </div>
             `).join('')}
         </div>`;
 };
 
-window.selectSuperFaction = (sf) => renderFactions(sf);
+window.selectSuperFaction = (sf) => window.renderFactions(sf);
 
-const renderFactions = (sf) => {
-    currentSelection.superFaction = sf;
-    setTheme(null);
-    updateView('factions');
+window.renderFactions = (sf) => {
+    window.currentSelection.superFaction = sf;
+    window.setTheme(null);
+    window.updateView('factions');
     
     UI.content.innerHTML = `
         <div class="list-menu vertical">
             ${superFactions[sf].map(f => `
                 <div class="menu-card zoom-effect" 
                      style="border-left: 4px solid ${factionColors[f] || 'var(--border-ui)'}" 
-                     onclick="selectFaction('${f}')">
+                     onclick="window.selectFaction('${f}')">
                     <div class="faction-row" style="display: flex; align-items: center; gap: 15px;">
                         <img src="assets/logos/${factionLogos[f] || 'generic.svg'}" 
-                             class="faction-logo" 
-                             style="width:40px; filter: brightness(0) invert(1);">
+                             class="faction-logo" style="width:40px; filter: brightness(0) invert(1);">
                         <h2>${f}</h2>
                     </div>
                 </div>
@@ -122,19 +130,19 @@ const renderFactions = (sf) => {
         </div>`;
 };
 
-window.selectFaction = (f) => renderSubfactions(f);
+window.selectFaction = (f) => window.renderSubfactions(f);
 
-const renderSubfactions = (f) => {
-    currentSelection.faction = f;
-    setTheme(factionColors[f]);
-    updateView('subfactions');
+window.renderSubfactions = (f) => {
+    window.currentSelection.faction = f;
+    window.setTheme(factionColors[f]);
+    window.updateView('subfactions');
     
-    const subs = [...new Set(db.filter(u => u.faction === f).map(u => u.subfaction))];
+    const subs = [...new Set(window.db.filter(u => u.faction === f).map(u => u.subfaction))];
     
     UI.content.innerHTML = `
         <div class="list-menu vertical">
             ${subs.map(s => `
-                <div class="menu-card zoom-effect" onclick="renderUnitList('${f}', '${s}')">
+                <div class="menu-card zoom-effect" onclick="window.renderUnitList('${f}', '${s}')">
                     <h2>${s || 'GENERAL_UNITS'}</h2>
                 </div>
             `).join('')}
@@ -142,15 +150,26 @@ const renderSubfactions = (f) => {
 };
 
 window.renderUnitList = (f, s) => {
-    currentSelection.subfaction = s;
-    updateView('units');
-    const units = db.filter(u => u.faction === f && u.subfaction === s).sort((a,b) => a.name.localeCompare(b.name));
+    window.currentSelection.subfaction = s;
+    window.setTheme(window.teamAccents[window.currentTeamContext]);
+    window.updateView('units');
     
+    const units = window.db.filter(u => u.faction === f && u.subfaction === s).sort((a,b) => a.name.localeCompare(b.name));
     const roles = ["ALL", "CHARACTER", "BATTLELINE", "VEHICLE", "INFANTRY"];
     
     UI.content.innerHTML = `
+        <div class="team-context-bar" style="display:flex; justify-content:center; gap:10px; margin-bottom:15px; background: rgba(0,0,0,0.3); padding: 10px; border: 1px solid rgba(255,255,255,0.05);">
+            ${[1, 2, 3].map(t => `
+                <button onclick="window.currentTeamContext = ${t}; window.renderUnitList('${f}','${s}')" 
+                    style="background:${window.currentTeamContext === t ? window.teamAccents[t] : '#000'}; 
+                           color:${window.currentTeamContext === t ? '#000' : 'var(--text-dim)'}; 
+                           border:1px solid ${window.teamAccents[t]}; padding:6px 12px; font-size:0.6rem; font-weight:900; cursor:pointer;">
+                    TEAM_${t}
+                </button>
+            `).join('')}
+        </div>
         <div class="filter-scroller" style="display:flex; overflow-x:auto; gap:8px; margin-bottom:15px;">
-            ${roles.map(r => `<button class="filter-chip" onclick="filterList('${r}', this)">${r}</button>`).join('')}
+            ${roles.map(r => `<button class="filter-chip" onclick="window.filterList('${r}', this)">${r}</button>`).join('')}
         </div>
         <ul class="list-menu vertical">
             ${units.map(u => {
@@ -159,6 +178,7 @@ window.renderUnitList = (f, s) => {
                 <li class="menu-card unit-list-item" data-id="${u.id}" onclick="window.selectUnit('${u.id}')">
                     <div style="flex-grow:1;"><h2>${u.name}</h2></div>
                     <button class="add-unit-btn ${isAdded ? 'added' : ''}" 
+                            style="border-color: ${window.teamAccents[window.currentTeamContext]}"
                             onclick="event.stopPropagation(); window.toggleRoster('${u.id}', event)">
                         ADD
                     </button>
@@ -168,15 +188,11 @@ window.renderUnitList = (f, s) => {
 };
 
 window.filterList = (keyword, btn) => {
-    document.querySelectorAll('.filter-chip').forEach(c => {
-        c.style.borderColor = 'var(--border-ui)';
-        c.style.color = 'var(--text-dim)';
-    });
-    btn.style.borderColor = 'var(--faction-accent)';
-    btn.style.color = 'var(--faction-accent)';
+    document.querySelectorAll('.filter-chip').forEach(c => c.classList.remove('active'));
+    btn.classList.add('active');
     
     document.querySelectorAll('.unit-list-item').forEach(item => {
-        const u = db.find(unit => unit.id === item.getAttribute('data-id'));
+        const u = window.db.find(unit => unit.id === item.getAttribute('data-id'));
         const matches = keyword === 'ALL' || (u.keywords && u.keywords.includes(keyword));
         item.style.display = matches ? 'flex' : 'none';
     });
@@ -187,15 +203,15 @@ window.filterList = (keyword, btn) => {
 UI.searchBar.addEventListener('input', (e) => {
     const q = e.target.value.toLowerCase();
     if (!q) { UI.suggestions.classList.add('hidden'); return; }
-    const matches = db.filter(u => u.name.toLowerCase().includes(q)).slice(0, 6);
+    const matches = window.db.filter(u => u.name.toLowerCase().includes(q)).slice(0, 6);
     UI.suggestions.classList.toggle('hidden', matches.length === 0);
     UI.suggestions.innerHTML = matches.map(m => {
         const isAdded = window.roster.some(item => item.unitId === m.id);
         return `
         <div class="suggestion-item" onclick="window.selectUnit('${m.id}')">
             <div style="display:flex; flex-direction:column;">
-                <span>${m.name}</span>
-                <span style="font-size:0.5rem; color:var(--text-dim);">${m.faction}</span>
+                <span style="color: #fff; font-weight: 800;">${m.name}</span>
+                <span style="font-size:0.5rem; color:var(--text-dim);">${m.faction.toUpperCase()}</span>
             </div>
             <button class="add-unit-btn small ${isAdded ? 'added' : ''}" 
                     onclick="event.stopPropagation(); window.toggleRoster('${m.id}', event)">
@@ -206,13 +222,13 @@ UI.searchBar.addEventListener('input', (e) => {
 });
 
 window.selectUnit = (id) => { 
-    currentSelection.unitId = id; 
+    window.currentSelection.unitId = id; 
     UI.suggestions.classList.add('hidden'); 
     UI.searchBar.value = ""; 
     window.renderCard(id); 
 };
 
-window.goHome = () => renderHome();
+window.goHome = () => window.renderHome();
 
 // --- 6. INITIALIZATION ---
 
@@ -222,9 +238,17 @@ fetch('wehrselector_data.json')
         window.db = data; 
         if (window.loadFromDisk) window.loadFromDisk(); 
         if (window.renderTacticalNav) window.renderTacticalNav(); 
-        renderHome(); 
-    });
+        window.renderHome(); 
+    })
+    .catch(err => console.error("DATABASE_LINK_FAILURE:", err));
 
-UI.backBtn.addEventListener('click', goBack);
+UI.backBtn.addEventListener('click', window.goBack);
 UI.rosterBtn.addEventListener('click', () => { if(window.renderRoster) window.renderRoster(); });
-window.onpopstate = (e) => { if (e.state) { currentSelection = e.state.selection; viewHistory.pop(); goBack(); } };
+
+window.onpopstate = (e) => { 
+    if (e.state) { 
+        window.currentSelection = e.state.selection; 
+        window.viewHistory.pop(); 
+        window.goBack(); 
+    } 
+};
